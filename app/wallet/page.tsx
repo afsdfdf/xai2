@@ -1,20 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
-import { Copy, BarChart2, Clock, ChevronRight, Download, Eye, EyeOff, Plus, Send } from "lucide-react"
+import { Copy, BarChart2, Clock, ChevronRight, Download, Eye, EyeOff, Plus, Send, Moon, ArrowLeftRight } from "lucide-react"
 import BottomNav from "../components/BottomNav"
 import Image from "next/image"
 import Link from "next/link"
+import EthereumProtection from "../components/EthereumProtection"
+import { Toaster } from "@/components/ui/toaster"
 
 export default function WalletPage() {
   const [darkMode, setDarkMode] = useState(true)
   const [showBalance, setShowBalance] = useState(true)
   const { toast } = useToast()
+
+  // 在组件初始化时添加额外的以太坊保护
+  useEffect(() => {
+    // 空的useEffect钩子，主要保护功能已经移动到EthereumProtection组件
+    return () => {};
+  }, []);
 
   // 模拟钱包地址
   const walletAddress = "0x6B75d8AF000000e992299b5D32a6c12C68D5CC7C"
@@ -106,14 +114,36 @@ export default function WalletPage() {
 
   return (
     <div className={`min-h-screen ${darkMode ? "bg-[#0b101a] text-white" : "bg-gray-50 text-gray-900"} pb-16`}>
+      <EthereumProtection />
+      
       <div className="max-w-md mx-auto">
         {/* 头部 */}
         <div className={`p-4 flex items-center justify-between border-b ${darkMode ? "border-gray-800" : "border-gray-200"}`}>
-          <h1 className="text-xl font-bold">我的钱包</h1>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? "🌞" : "🌙"}
+            <div className="relative w-8 h-8 rounded-full overflow-hidden">
+              <Image 
+                src="/LOGO.JPG" 
+                alt="XAI FINANCE" 
+                fill 
+                className="object-cover" 
+                priority
+              />
+            </div>
+          <h1 className="text-xl font-bold">我的钱包</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)} className="rounded-full">
+              <Moon className="w-5 h-5" />
             </Button>
+            <div className="relative w-8 h-8 rounded-full overflow-hidden">
+              <Image 
+                src="/LOGO.JPG" 
+                alt="Logo" 
+                fill 
+                className="object-cover"
+                priority
+              />
+            </div>
           </div>
         </div>
 
@@ -123,7 +153,7 @@ export default function WalletPage() {
             <div className="flex items-center space-x-2">
               <div className="p-2 rounded-full bg-blue-600">
                 <Image 
-                  src="/placeholder-token.png" 
+                  src="/LOGO.JPG" 
                   alt="Wallet" 
                   width={24} 
                   height={24}
@@ -166,15 +196,15 @@ export default function WalletPage() {
 
         {/* 操作按钮 */}
         <div className={`grid grid-cols-3 gap-4 p-4 ${darkMode ? "bg-[#11161f]" : "bg-white"}`}>
-          <Button variant="outline" className={`flex flex-col items-center justify-center h-20 ${darkMode ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : ""}`}>
+          <Button variant="ghost" className={`flex flex-col items-center justify-center h-16 ${darkMode ? "bg-[#171f2c] border-0 hover:bg-gray-800" : ""}`}>
             <Send className="w-5 h-5 mb-1" />
             <span className="text-xs">发送</span>
           </Button>
-          <Button variant="outline" className={`flex flex-col items-center justify-center h-20 ${darkMode ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : ""}`}>
+          <Button variant="ghost" className={`flex flex-col items-center justify-center h-16 ${darkMode ? "bg-[#171f2c] border-0 hover:bg-gray-800" : ""}`}>
             <Download className="w-5 h-5 mb-1" />
             <span className="text-xs">接收</span>
           </Button>
-          <Button variant="outline" className={`flex flex-col items-center justify-center h-20 ${darkMode ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : ""}`}>
+          <Button variant="ghost" className={`flex flex-col items-center justify-center h-16 ${darkMode ? "bg-[#171f2c] border-0 hover:bg-gray-800" : ""}`}>
             <Plus className="w-5 h-5 mb-1" />
             <span className="text-xs">购买</span>
           </Button>
@@ -182,27 +212,32 @@ export default function WalletPage() {
 
         {/* 资产列表 */}
         <div className="p-4">
-          <h2 className="text-lg font-semibold mb-3">资产列表</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">资产列表</h2>
+          </div>
           <div className={`rounded-lg overflow-hidden ${darkMode ? "bg-[#11161f]" : "bg-white"}`}>
             {walletBalance.assets.map((asset, index) => (
               <div 
                 key={asset.symbol}
-                className={`flex items-center justify-between p-4 ${
+                className={`flex items-center justify-between p-4 hover:bg-opacity-50 hover:bg-gray-800 transition-colors cursor-pointer ${
                   index !== walletBalance.assets.length - 1 
                     ? `border-b ${darkMode ? "border-gray-800" : "border-gray-200"}` 
                     : ""
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <div className="relative w-10 h-10 overflow-hidden rounded-full">
-                    <Image 
-                      src={asset.logo} 
-                      alt={asset.symbol} 
-                      width={40} 
-                      height={40}
-                      className="object-cover"
-                      onError={(e) => (e.currentTarget.src = "/placeholder-token.png")}
-                    />
+                  <div className={`relative w-10 h-10 overflow-hidden rounded-full flex items-center justify-center ${
+                    asset.symbol === "BTC" ? "bg-blue-900" :
+                    asset.symbol === "ETH" ? "bg-gray-700" :
+                    asset.symbol === "SOL" ? "bg-gray-600" :
+                    asset.symbol === "AVAX" ? "bg-gray-800" : "bg-gray-800"
+                  }`}>
+                    <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
+                      {asset.symbol === "BTC" ? "B" :
+                       asset.symbol === "ETH" ? "E" :
+                       asset.symbol === "SOL" ? "S" :
+                       asset.symbol === "AVAX" ? "A" : asset.symbol.charAt(0)}
+                    </div>
                   </div>
                   <div>
                     <div className="font-semibold">{asset.name}</div>
@@ -248,22 +283,33 @@ export default function WalletPage() {
                   }`}>
                     {tx.type === 'receive' && <Download className="w-5 h-5" />}
                     {tx.type === 'send' && <Send className="w-5 h-5" />}
-                    {tx.type === 'swap' && <BarChart2 className="w-5 h-5" />}
+                    {tx.type === 'swap' && <ArrowLeftRight className="w-5 h-5" />}
                   </div>
                   <div>
-                    <div className="font-semibold">
-                      {tx.type === 'receive' ? '接收' : tx.type === 'send' ? '发送' : '兑换'}
+                    <div className="font-medium">{tx.amount}</div>
+                    <div className="text-sm text-gray-400">
+                      {tx.date}
                     </div>
-                    <div className="text-sm text-gray-400">{tx.date}</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`font-semibold ${
-                    tx.type === 'receive' ? 'text-green-500' : tx.type === 'send' ? 'text-red-500' : ''
+                  <div className={`font-medium ${
+                    tx.type === 'receive' 
+                      ? 'text-green-500' 
+                      : tx.type === 'send' 
+                      ? 'text-red-500' 
+                      : 'text-blue-500'
                   }`}>
-                    {tx.amount}
+                    {tx.usdValue}
                   </div>
-                  <div className="text-sm text-gray-400">{tx.usdValue}</div>
+                  <div className="text-sm text-gray-400">
+                    {tx.type === 'receive' 
+                      ? `来自: ${tx.from}` 
+                      : tx.type === 'send' 
+                      ? `发送至: ${tx.to}` 
+                      : '兑换'
+                    }
+                  </div>
                 </div>
               </div>
             ))}
@@ -273,6 +319,9 @@ export default function WalletPage() {
       
       {/* 底部导航栏 */}
       <BottomNav darkMode={darkMode} />
+      
+      {/* 添加Toaster组件显示通知 */}
+      <Toaster />
     </div>
   )
 } 

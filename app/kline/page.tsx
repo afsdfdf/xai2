@@ -9,12 +9,29 @@ import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import BottomNav from "../components/BottomNav"
 import { searchTokens } from "@/app/lib/ave-api-service"
+import Script from "next/script"
+import SafeIframe from "../components/SafeIframe"
+import EthereumProtection from "../components/EthereumProtection"
+
+// 自定义样式，隐藏DexScreener标志
+const hideDexScreenerStyles = `
+  /* 隐藏iframe底部的DEX SCREENER标志 */
+  iframe {
+    overflow: hidden;
+    margin-bottom: -35px !important;
+    height: calc(100% + 35px) !important;
+  }
+  
+  /* 确保iframe容器隐藏溢出内容 */
+  .iframe-container {
+    overflow: hidden;
+  }
+`;
 
 export default function KLinePage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [darkMode, setDarkMode] = useState(true)
-  const [selectedTimeframe, setSelectedTimeframe] = useState("1D") 
   const [selectedPair, setSelectedPair] = useState("SOLANA/PAIR")
   const [pairAddress, setPairAddress] = useState("")
   const [blockchain, setBlockchain] = useState("solana")
@@ -119,15 +136,12 @@ export default function KLinePage() {
   const getChartSource = () => {
     if (pairAddress && blockchain) {
       // 如果有地址和区块链参数，使用它们
-      return `https://dexscreener.com/${blockchain}/${pairAddress}?embed=1&chartLeftToolbar=1&chartTradesTable=1&chartDefaultOnMobile=1&chartTheme=dark&theme=dark&chartStyle=1&chartType=candles&interval=1`
+      return `https://dexscreener.com/${blockchain}/${pairAddress}?embed=1&chartLeftToolbar=1&chartTradesTable=1&chartDefaultOnMobile=1&chartTheme=dark&theme=dark&chartStyle=1&chartType=candles&interval=1D&hideExchange=1&hideLogo=1&footerOff=1`
     } else {
       // 使用默认的Solana图表
-      return `https://dexscreener.com/solana/73tF8uN3zMdMJBFNr213JNqavguyEnLNTYCxlARMuYg2?embed=1&chartLeftToolbar=1&chartTradesTable=1&chartDefaultOnMobile=1&chartTheme=dark&theme=dark&chartStyle=1&chartType=candles&interval=1`
+      return `https://dexscreener.com/solana/73tF8uN3zMdMJBFNr213JNqavguyEnLNTYCxlARMuYg2?embed=1&chartLeftToolbar=1&chartTradesTable=1&chartDefaultOnMobile=1&chartTheme=dark&theme=dark&chartStyle=1&chartType=candles&interval=1D&hideExchange=1&hideLogo=1&footerOff=1`
     }
   }
-
-  // 时间周期选项
-  const timeframes = ["15m", "1H", "4H", "1D", "1W"]
 
   // 格式化区块链名称
   const formatBlockchainName = (chain: string) => {
@@ -146,6 +160,12 @@ export default function KLinePage() {
 
   return (
     <div className="min-h-screen bg-[#0b101a] text-white">
+      {/* 隐藏DEX SCREENER标志的自定义样式 */}
+      <style jsx>{hideDexScreenerStyles}</style>
+      
+      {/* 保护ethereum对象 */}
+      <EthereumProtection />
+      
       <div className="mx-auto max-w-full pb-16">
         {/* 简化的顶部导航栏 - 只有LOGO和搜索框 */}
         <div className="flex items-center justify-between p-3 bg-[#11161f] border-b border-gray-800">
@@ -249,31 +269,11 @@ export default function KLinePage() {
           </div>
             </div>
 
-        {/* 时间框架选择器 */}
-        <div className="flex justify-end p-2 bg-[#11161f] border-b border-gray-800">
-          <div className="flex">
-              {timeframes.map(time => (
-                <Button 
-                  key={time}
-                variant="ghost"
-                  size="sm"
-                className={`px-2 py-1 h-7 rounded-md text-xs ${
-                    selectedTimeframe === time 
-                    ? "bg-blue-600 text-white" 
-                    : "text-gray-400 hover:text-white"
-                  }`}
-                  onClick={() => setSelectedTimeframe(time)}
-                >
-                  {time}
-                </Button>
-              ))}
-          </div>
-        </div>
-
-        {/* 主图表区域 */}
+        {/* K线图显示区域 */}
         <div className="w-full bg-[#11161f]">
-          <div style={{ height: "calc(100vh - 136px)" }}>
-              <iframe 
+          <div style={{ height: "calc(100vh - 116px)" }} className="relative">
+            <div className="w-full h-full overflow-hidden iframe-container">
+              <SafeIframe
                 src={getChartSource()}
                 title={`${selectedPair} Chart`}
                 className="w-full h-full border-0"
@@ -282,8 +282,9 @@ export default function KLinePage() {
         </div>
       </div>
       
-      {/* 底部导航栏 */}
+        {/* 底部导航 */}
       <BottomNav darkMode={darkMode} />
+      </div>
     </div>
   )
 } 

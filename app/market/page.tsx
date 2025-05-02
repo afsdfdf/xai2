@@ -4,17 +4,19 @@ import { useState, useEffect } from "react"
 import { ArrowLeft, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
+import { OptimizedImage } from "@/app/components/ui/optimized-image"
 import BottomNav from "@/app/components/BottomNav"
 import TokenRankings from "@/app/components/token-rankings"
+import EthereumProtection from "../components/EthereumProtection"
 
 export default function MarketPage() {
   const router = useRouter()
   const [darkMode, setDarkMode] = useState(true)
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-black text-white" : "bg-white text-black"}`}>
-      <div className="max-w-md mx-auto pb-16">
+    <div className={`min-h-screen ${darkMode ? "bg-[#0b101a] text-white" : "bg-gray-50 text-gray-900"} pb-16`}>
+      <EthereumProtection />
+      <div className="max-w-md mx-auto">
         {/* 头部 */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <div className="flex items-center gap-2">
@@ -28,12 +30,14 @@ export default function MarketPage() {
               <Moon className="w-5 h-5" />
                 </Button>
             <div className="relative w-8 h-8 rounded-full overflow-hidden">
-              <Image 
+              <OptimizedImage 
                 src="/LOGO.JPG" 
                 alt="Logo" 
                 fill 
                 className="object-cover"
                 priority
+                debug={true}
+                useStaticFallback={true}
               />
             </div>
           </div>

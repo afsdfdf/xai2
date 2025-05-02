@@ -1,31 +1,38 @@
 @echo off
-title XAI Finance - Development Server
+title XAI Finance
 
-echo Starting XAI Finance Development Environment...
+echo 启动XAI Finance生产环境...
 echo.
 
-REM Create a virtual environment if it doesn't exist
-if not exist "venv" (
-    echo Creating Python virtual environment...
+REM 设置环境变量
+set AVE_API_KEY=NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA
+set NEXT_PUBLIC_API_BASE_URL=
+set NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+REM 激活Python虚拟环境
+if exist "venv" (
+    call venv\Scripts\activate
+) else (
+    echo 正在创建虚拟环境...
     python -m venv venv
     call venv\Scripts\activate
     pip install -r requirements.txt
-) else (
-    call venv\Scripts\activate
 )
 
 echo.
-echo Starting Python API server in a new window...
-start cmd /k "title Python API Server && call venv\Scripts\activate && python api_server.py"
+echo 启动API服务器...
+start cmd /k "title XAI API Server && call venv\Scripts\activate && set AVE_API_KEY=%AVE_API_KEY% && python api_server.py"
 
 echo.
-echo Waiting for API server to start...
-timeout /t 5 /nobreak > nul
+echo 等待API服务器启动...
+timeout /t 3 /nobreak > nul
 
 echo.
-echo Starting Next.js app...
-npm run dev
+echo 启动Next.js应用...
+set NEXT_PUBLIC_API_BASE_URL=%NEXT_PUBLIC_API_BASE_URL%
+set NEXT_PUBLIC_APP_URL=%NEXT_PUBLIC_APP_URL%
+npm run start
 
 echo.
-echo Servers are stopping...
+echo 服务器已停止
 exit 

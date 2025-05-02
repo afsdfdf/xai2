@@ -1,9 +1,8 @@
 // Ave.ai API服务
 import { apiRequest, buildUrl } from './api-utils';
 
-// API密钥应从环境变量获取，不应硬编码
-// TODO: 将API密钥移至服务端API路由，不在客户端暴露
-const AVE_API_KEY = process.env.AVE_API_KEY || "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA"
+// API密钥配置 - 生产环境从环境变量获取
+const AVE_API_KEY = process.env.AVE_API_KEY || "";
 
 export interface TokenPrice {
   symbol: string;

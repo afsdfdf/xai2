@@ -8,6 +8,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import BottomNav from "../components/BottomNav"
+import EthereumProtection from "../components/EthereumProtection"
 
 // Web3 应用数据
 const web3Apps = {
@@ -464,7 +465,8 @@ export default function DiscoverPage() {
   const filteredApps = getFilteredApps();
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-black text-white" : "bg-white text-black"}`}>
+    <div className={`min-h-screen ${darkMode ? "bg-[#0b101a] text-white" : "bg-gray-50 text-gray-900"} pb-16`}>
+      <EthereumProtection />
       <div className="max-w-md mx-auto pb-20">
         {/* 头部 */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">

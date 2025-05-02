@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import logging
 import time
 import json
@@ -8,6 +10,11 @@ import random
 import os
 import threading
 import schedule
+from dotenv import load_dotenv
+from functools import wraps
+
+# 加载.env文件中的环境变量
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -16,6 +23,48 @@ CORS(app)  # Enable CORS for all routes
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# 从环境变量获取API密钥，而不是硬编码
+AVE_API_KEY = os.environ.get("AVE_API_KEY", "")
+
+# 创建一个带重试机制的requests会话
+def create_requests_session():
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=3,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "POST"],
+        backoff_factor=1
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=10)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
+# 全局requests会话
+http_session = create_requests_session()
+
+# 全局错误处理装饰器
+def handle_errors(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except requests.RequestException as e:
+            logger.error(f"API请求错误: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": "外部API请求失败",
+                "message": str(e)
+            }), 500
+        except Exception as e:
+            logger.error(f"处理请求时发生未知错误: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": "内部服务器错误",
+                "message": str(e)
+            }), 500
+    return wrapped
 
 # 缓存文件路径
 CACHE_DIR = "cache"
@@ -90,7 +139,7 @@ def background_update_caches():
 def update_token_boosts_cache():
     try:
         logger.info("Updating token_boosts cache in background")
-        response = requests.get(
+        response = http_session.get(
             "https://api.dexscreener.com/token-boosts/top/v1",
             headers={"Accept": "*/*"},
             timeout=10
@@ -192,11 +241,11 @@ def update_ave_data_cache():
         logger.info("Updating Ave API cache in background")
         
         # 尝试获取热门主题数据
-        response = requests.get(
+        response = http_session.get(
             "https://prod.ave-api.com/v2/ranks?topic=hot",
             headers={
                 "Accept": "*/*",
-                "X-API-KEY": "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA"
+                "X-API-KEY": AVE_API_KEY
             },
             timeout=15
         )
@@ -255,6 +304,7 @@ def update_ave_data_cache():
         return False
 
 @app.route('/api/token-boosts', methods=['GET'])
+@handle_errors
 def get_token_boosts():
     """Fetch token boosts data from DexScreener and return formatted results"""
     try:
@@ -266,7 +316,7 @@ def get_token_boosts():
         # 尝试更新缓存
         try:
             logger.info("Fetching fresh token boosts data from DexScreener")
-            response = requests.get(
+            response = http_session.get(
                 "https://api.dexscreener.com/token-boosts/top/v1",
                 headers={"Accept": "*/*"},
                 timeout=10
@@ -359,6 +409,7 @@ def get_token_boosts():
         }), 500
 
 @app.route('/api/home', methods=['GET'])
+@handle_errors
 def get_home_data():
     """Provide comprehensive home data including trending, popular, and new tokens"""
     try:
@@ -502,6 +553,7 @@ def get_fallback_tokens():
     return fallback_tokens
 
 @app.route('/health', methods=['GET'])
+@handle_errors
 def health_check():
     """Simple health check endpoint"""
     return jsonify({
@@ -524,6 +576,7 @@ def health_check():
     })
 
 @app.route('/api/cache/status', methods=['GET'])
+@handle_errors
 def cache_status():
     """Return detailed cache status information"""
     return jsonify({
@@ -554,6 +607,7 @@ def cache_status():
     })
 
 @app.route('/api/cache/refresh', methods=['POST'])
+@handle_errors
 def refresh_cache():
     """Manually trigger a cache refresh"""
     cache_type = request.args.get('type', 'all')
@@ -595,6 +649,7 @@ def setup_scheduled_tasks():
     logger.info("Scheduled cache update tasks initialized")
 
 @app.route('/api/token-details', methods=['GET'])
+@handle_errors
 def get_token_details():
     """获取代币详情信息"""
     try:
@@ -617,15 +672,14 @@ def get_token_details():
             return jsonify(cache[cache_key]["data"])
             
         # 准备 Ave.ai API 请求
-        ave_api_key = "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA"
         headers = {
             "Accept": "*/*",
-            "X-API-KEY": ave_api_key
+            "X-API-KEY": AVE_API_KEY
         }
         
         # 发起请求获取代币详情
         token_url = f"https://prod.ave-api.com/v2/tokens?keyword={address}&chain={chain}"
-        response = requests.get(token_url, headers=headers, timeout=15)
+        response = http_session.get(token_url, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return jsonify({
@@ -695,6 +749,7 @@ def get_token_details():
         }), 500
 
 @app.route('/api/token-kline', methods=['GET'])
+@handle_errors
 def get_token_kline():
     """获取代币K线数据"""
     try:
@@ -779,6 +834,7 @@ def get_token_kline():
         }), 500
 
 @app.route('/api/token-transactions', methods=['GET'])
+@handle_errors
 def get_token_transactions():
     """获取代币交易历史"""
     try:
@@ -843,6 +899,7 @@ def get_token_transactions():
         }), 500
 
 @app.route('/api/search-tokens', methods=['GET'])
+@handle_errors
 def search_tokens():
     """搜索代币API - 直接调用Ave.ai API进行代币搜索"""
     try:
@@ -865,10 +922,9 @@ def search_tokens():
             return jsonify(cache[cache_key]["data"])
         
         # 调用Ave.ai API
-        ave_api_key = "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA"
         headers = {
             "Accept": "*/*",
-            "X-API-KEY": ave_api_key
+            "X-API-KEY": AVE_API_KEY
         }
         
         # 构建请求URL
@@ -879,7 +935,7 @@ def search_tokens():
         logger.info(f"Searching tokens with URL: {url}")
         
         # 发送请求
-        response = requests.get(url, headers=headers, timeout=10)
+        response = http_session.get(url, headers=headers, timeout=10)
         
         if response.status_code != 200:
             logger.error(f"Ave.ai API request failed: {response.status_code}")
@@ -950,15 +1006,11 @@ def search_tokens():
         }), 500
 
 if __name__ == '__main__':
-    # 加载持久化缓存
+    # 加载缓存
     load_cache_from_disk()
-    
-    # 立即更新缓存
-    background_update_caches()
     
     # 设置定时任务
     setup_scheduled_tasks()
     
-    # 启动服务器
-    logger.info("Starting API server on port 5000")
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+    # 启动Flask应用 - 生产环境移除debug模式
+    app.run(host='0.0.0.0', port=5000, debug=False) 

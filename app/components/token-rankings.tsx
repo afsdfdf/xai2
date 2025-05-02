@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { TrendingUp, Clock, RefreshCw, ChevronLeft, ChevronRight, Smile } from "lucide-react"
 import Image from "next/image"
 import { toast } from "@/components/ui/use-toast"
+import { safeLogError, safeLogObject } from "../lib/logging-helper"
 
 // API key for Ave.ai
 const AVE_API_KEY = "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA";
@@ -107,7 +108,7 @@ export default function TokenRankings({ darkMode }: { darkMode: boolean }) {
         if (data && data.topics) {
           setTopics(data.topics);
         } else {
-          console.error("Invalid API response format", data);
+          safeLogError("Invalid API response format", "token-rankings:fetchTopics");
           toast({
             title: "错误",
             description: "获取主题列表失败",
@@ -115,7 +116,7 @@ export default function TokenRankings({ darkMode }: { darkMode: boolean }) {
           });
         }
       } catch (error) {
-        console.error("Error fetching topics:", error);
+        safeLogError(error, "token-rankings:fetchTopics");
         toast({
           title: "错误",
           description: "获取主题列表失败",
@@ -214,16 +215,16 @@ export default function TokenRankings({ darkMode }: { darkMode: boolean }) {
           
           setTokens(processedTokens);
         } else {
-          console.error("API返回数据格式无效:", data);
+          safeLogError(data, "token-rankings:fetchTokens:invalid-data");
           throw new Error("API返回数据格式无效，无法加载代币信息");
         }
       } catch (err) {
-        console.error("获取代币数据失败:", err);
+        safeLogError(err, "token-rankings:fetchTokens");
         setError(err instanceof Error ? err.message : "未获得API数据，请稍后再试");
         
         // 当API调用失败时，使用测试数据（如果已有）
         if (dummyTokens.length > 0) {
-          console.log("使用测试数据作为后备");
+          safeLogObject({ message: "使用测试数据作为后备" }, "token-rankings:fallback");
           setTokens(dummyTokens);
         }
       } finally {

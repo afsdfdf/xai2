@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { ArrowDown, ArrowUp, BarChart2, Clock, RefreshCw, Search } from "lucide-react"
+import { ArrowDown, ArrowUp, BarChart2, Clock, RefreshCw, Search, Moon, Sun } from "lucide-react"
 import BottomNav from "../components/BottomNav"
 import Image from "next/image"
 import Link from "next/link"
+import EthereumProtection from "../components/EthereumProtection"
+import { Toaster } from "@/components/ui/toaster"
 
 export default function TradePage() {
   const [darkMode, setDarkMode] = useState(true)
@@ -18,7 +20,7 @@ export default function TradePage() {
   const [selectedToken, setSelectedToken] = useState("SOL")
   const [selectedPair, setSelectedPair] = useState("USDT")
   const [amount, setAmount] = useState("")
-  const [price, setPrice] = useState("26.72")
+  const [price, setPrice] = useState("26.73")
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
@@ -35,7 +37,6 @@ export default function TradePage() {
 
   // 模拟交易历史
   const tradeHistory = [
-    { time: "22:15", type: "buy", amount: "0.52", price: "26.73", total: "13.89" },
     { time: "21:34", type: "sell", amount: "1.28", price: "26.68", total: "34.15" },
     { time: "20:55", type: "buy", amount: "0.35", price: "26.70", total: "9.34" },
     { time: "19:22", type: "buy", amount: "2.10", price: "26.65", total: "55.96" },
@@ -77,19 +78,42 @@ export default function TradePage() {
 
   return (
     <div className={`min-h-screen ${darkMode ? "bg-[#0b101a] text-white" : "bg-gray-50 text-gray-900"} pb-16`}>
+      {/* 添加以太坊保护组件 */}
+      <EthereumProtection />
+      
       <div className="max-w-md mx-auto">
         {/* 头部 */}
         <div className={`p-4 flex items-center justify-between border-b ${darkMode ? "border-gray-800" : "border-gray-200"}`}>
-          <h1 className="text-xl font-bold">交易</h1>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
+            <div className="relative w-8 h-8 rounded-full overflow-hidden">
+              <Image 
+                src="/LOGO.JPG" 
+                alt="XAI FINANCE" 
+                fill 
+                className="object-cover" 
+                priority
+              />
+            </div>
+          <h1 className="text-xl font-bold">交易</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" asChild>
               <Link href="/kline">
                 <BarChart2 className="w-5 h-5" />
               </Link>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? "🌞" : "🌙"}
+            <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)} className="rounded-full">
+              <Moon className="w-5 h-5" />
             </Button>
+            <div className="relative w-8 h-8 rounded-full overflow-hidden">
+              <Image 
+                src="/LOGO.JPG" 
+                alt="Logo" 
+                fill 
+                className="object-cover"
+                priority
+              />
+            </div>
           </div>
         </div>
 
@@ -98,15 +122,11 @@ export default function TradePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className="relative w-8 h-8 overflow-hidden rounded-full">
-                  <Image 
-                    src="/solana-logo.png" 
-                    alt="SOL" 
-                    width={32} 
-                    height={32}
-                    className="object-cover"
-                    onError={(e) => (e.currentTarget.src = "/placeholder-token.png")}
-                  />
+                {/* 使用字母作为Logo */}
+                <div className="relative w-8 h-8 overflow-hidden rounded-full bg-gray-600 flex items-center justify-center">
+                  <div className="w-full h-full flex items-center justify-center text-white font-bold">
+                    S
+                  </div>
                 </div>
                 <div>
                   <div className="font-bold">{selectedToken}/{selectedPair}</div>
@@ -135,53 +155,59 @@ export default function TradePage() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-400">价格</label>
-                <div className="flex items-center space-x-2 mt-1">
+                <div className="relative mt-1">
                   <Input 
                     type="text" 
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-300"}`}
+                    className={`w-full ${darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-300"}`}
                   />
-                  <span className="text-sm">{selectedPair}</span>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <span className="text-sm font-semibold">{selectedPair}</span>
+                  </div>
                 </div>
               </div>
               
               <div>
                 <label className="text-sm text-gray-400">数量</label>
-                <div className="flex items-center space-x-2 mt-1">
+                <div className="relative mt-1">
                   <Input 
                     type="text" 
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-300"}`}
+                    className={`w-full ${darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-300"}`}
                     placeholder="输入交易数量"
                   />
-                  <span className="text-sm">{selectedToken}</span>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <span className="text-sm font-semibold">{selectedToken}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between mt-1">
-                  <button className="text-xs text-blue-500">25%</button>
-                  <button className="text-xs text-blue-500">50%</button>
-                  <button className="text-xs text-blue-500">75%</button>
-                  <button className="text-xs text-blue-500">100%</button>
+                <div className="flex justify-between mt-2">
+                  <button className="text-xs text-blue-500 hover:text-blue-400">25%</button>
+                  <button className="text-xs text-blue-500 hover:text-blue-400">50%</button>
+                  <button className="text-xs text-blue-500 hover:text-blue-400">75%</button>
+                  <button className="text-xs text-blue-500 hover:text-blue-400">100%</button>
                 </div>
               </div>
               
               <div>
                 <label className="text-sm text-gray-400">总额</label>
-                <div className="flex items-center space-x-2 mt-1">
+                <div className="relative mt-1">
                   <Input 
                     type="text" 
                     value={amount ? (parseFloat(amount) * parseFloat(price)).toFixed(2) : ''}
                     readOnly
-                    className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-300"}`}
+                    className={`w-full ${darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-300"}`}
                   />
-                  <span className="text-sm">{selectedPair}</span>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <span className="text-sm font-semibold">{selectedPair}</span>
+                  </div>
                 </div>
               </div>
               
               <Button 
                 onClick={handleTrade}
-                className={`w-full ${tradeType === 'buy' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                className={`w-full h-12 text-base font-medium ${tradeType === 'buy' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -200,18 +226,18 @@ export default function TradePage() {
           <div className={`overflow-hidden rounded-lg ${darkMode ? "bg-[#11161f]" : "bg-white"}`}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className={`text-left ${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
+                <thead className={`text-left ${darkMode ? "bg-[#1a2234]" : "bg-gray-100"} border-b ${darkMode ? "border-gray-800" : "border-gray-200"}`}>
                   <tr>
-                    <th className="px-4 py-2">时间</th>
-                    <th className="px-4 py-2">类型</th>
-                    <th className="px-4 py-2">价格</th>
-                    <th className="px-4 py-2">数量</th>
-                    <th className="px-4 py-2">总额</th>
+                    <th className="px-4 py-3">时间</th>
+                    <th className="px-4 py-3">类型</th>
+                    <th className="px-4 py-3">价格</th>
+                    <th className="px-4 py-3">数量</th>
+                    <th className="px-4 py-3">总额</th>
                   </tr>
                 </thead>
                 <tbody>
                   {tradeHistory.map((item, index) => (
-                    <tr key={index} className={`${darkMode ? "border-gray-800" : "border-gray-200"} border-t`}>
+                    <tr key={index} className={`${index !== tradeHistory.length - 1 ? `border-b ${darkMode ? "border-gray-800" : "border-gray-200"}` : ""}`}>
                       <td className="px-4 py-3">{item.time}</td>
                       <td className={`px-4 py-3 ${item.type === 'buy' ? 'text-green-500' : 'text-red-500'}`}>
                         {item.type === 'buy' ? <ArrowUp className="inline w-4 h-4 mr-1" /> : <ArrowDown className="inline w-4 h-4 mr-1" />}
@@ -231,6 +257,9 @@ export default function TradePage() {
       
       {/* 底部导航栏 */}
       <BottomNav darkMode={darkMode} />
+      
+      {/* 添加Toaster组件显示通知 */}
+      <Toaster />
     </div>
   )
 } 

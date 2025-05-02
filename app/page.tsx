@@ -15,6 +15,7 @@ import SplashScreen from './components/splash-screen'
 import BottomNav from './components/BottomNav'
 import TokenRankings from './components/token-rankings'
 import { searchTokens } from "@/app/lib/ave-api-service"
+import EthereumProtection from './components/EthereumProtection'
 
 export default function CryptoTracker() {
   const router = useRouter()
@@ -24,7 +25,20 @@ export default function CryptoTracker() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [showResults, setShowResults] = useState(false)
   const searchResultsRef = useRef<HTMLDivElement>(null)
-  const [showSplash, setShowSplash] = useState(true)
+  const [showSplash, setShowSplash] = useState(false)
+
+  // 初始化时检查是否显示开屏
+  useEffect(() => {
+    // 仅在首次访问或页面刷新时显示开屏
+    // 检查是否已经在这个会话中看过开屏
+    const hasSeenSplash = sessionStorage.getItem('hasSeenSplash');
+    
+    if (!hasSeenSplash) {
+      setShowSplash(true);
+      // 标记已经看过开屏
+      sessionStorage.setItem('hasSeenSplash', 'true');
+    }
+  }, []);
 
   // 处理点击外部关闭搜索结果
   useEffect(() => {
@@ -91,7 +105,9 @@ export default function CryptoTracker() {
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-black text-white" : "bg-white text-black"}`}>
+    <div className={`${darkMode ? "bg-[#0b101a] text-white" : "bg-gray-50 text-gray-900"}`}>
+      <EthereumProtection />
+      
       <div className="max-w-md mx-auto pb-16">
         {/* 头部 */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
@@ -124,7 +140,7 @@ export default function CryptoTracker() {
         </div>
 
         {/* 搜索部分 - 替换为与Kline页面一致的搜索框 */}
-        <div className="p-4">
+        <div className="p-4 pb-2">
           <div className="relative">
             <div className="flex items-center">
               <Input
@@ -212,15 +228,8 @@ export default function CryptoTracker() {
         </div>
 
         {/* 探索部分 */}
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-semibold">Explore</h2>
-            <Button variant="outline" size="sm" className="text-xs h-7 rounded-full bg-blue-600 text-white border-none">
-              热门推荐
-            </Button>
-          </div>
-
-          <Card className={`mb-4 overflow-hidden rounded-xl ${darkMode ? "bg-transparent border-none" : "bg-transparent border-none"}`}>
+        <div className="p-4 pt-0">
+          <Card className={`overflow-hidden rounded-xl ${darkMode ? "bg-transparent border-none" : "bg-transparent border-none"}`}>
             <div className="relative w-full h-[120px]">
               <Image
                 src="/hf.png"

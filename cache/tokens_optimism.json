@@ -1,0 +1,47 @@
+{
+  "data": [
+    {
+      "token": "0x9560e827af36c94d2ac33a39bce1fe78631088db",
+      "chain": "optimism",
+      "symbol": "VELO",
+      "name": "VELO",
+      "logo_url": "https://www.iconaves.com/token_icon/optimism/0x9560e827af36c94d2ac33a39bce1fe78631088db.png",
+      "current_price_usd": 0.037181967445616464,
+      "price_change_24h": -4.1,
+      "tx_volume_u_24h": 122994.015578,
+      "holders": 29521,
+      "market_cap": "62445824.61706088500599543968",
+      "fdv": "62445824.61706088500599543968",
+      "risk_score": "55"
+    },
+    {
+      "token": "0xdc6ff44d5d932cbd77b52e5612ba0529dc6226f1",
+      "chain": "optimism",
+      "symbol": "WLD",
+      "name": "WLD",
+      "logo_url": "https://www.iconaves.com/token_icon/optimism/0xdc6ff44d5d932cbd77b52e5612ba0529dc6226f1.png",
+      "current_price_usd": 0.741919399341253,
+      "price_change_24h": -5.58,
+      "tx_volume_u_24h": 84213.99436893467,
+      "holders": 95273,
+      "market_cap": "130206902.067231459340192",
+      "fdv": "130206902.067231459340192",
+      "risk_score": "40"
+    },
+    {
+      "token": "0x6985884c4392d348587b19cb9eaaf157f13271cd",
+      "chain": "optimism",
+      "symbol": "ZRO",
+      "name": "ZRO",
+      "logo_url": "https://www.iconaves.com/token_icon/optimism/0x6985884c4392d348587b19cb9eaaf157f13271cd.png",
+      "current_price_usd": 2.711850576983412,
+      "price_change_24h": -2.9,
+      "tx_volume_u_24h": 52442.753459,
+      "holders": 47875,
+      "market_cap": "27.169681102072373967852",
+      "fdv": "27.169681102072373967852",
+      "risk_score": "40"
+    }
+  ],
+  "timestamp": 1746212187562
+}
