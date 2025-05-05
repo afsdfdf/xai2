@@ -2,6 +2,7 @@
   "name": "xai-finance",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.10.0",
   "description": "XAI Finance Web3应用 - 加密货币行情、K线图和Web3应用发现平台",
   "author": "Your Name",
   "license": "MIT",
