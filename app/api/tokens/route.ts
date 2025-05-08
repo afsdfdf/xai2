@@ -1,20 +1,14 @@
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import { join } from 'path';
+import { getTokenRankList, getTokenRankTopics } from '@/app/lib/ave-api-service';
+import { cacheService, CACHE_TTL } from '@/app/lib/cache-service';
 
 // API key for Ave.ai - 应该从环境变量获取，避免在代码中硬编码
 const AVE_API_KEY = process.env.AVE_API_KEY || "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA";
 
 // 缓存文件路径
-const CACHE_DIR = join(process.cwd(), 'cache');
+const CACHE_DIR = process.cwd();
 
-// 接口定义
-interface RankTopic {
-  id: string;
-  name_en: string;
-  name_zh: string;
-}
-
+// Define types for tokens
 interface TokenData {
   token: string;
   chain: string;
@@ -28,6 +22,12 @@ interface TokenData {
   market_cap?: string;
   fdv?: string;
   risk_score?: string;
+}
+
+interface RankTopic {
+  id: string;
+  name_en: string;
+  name_zh: string;
 }
 
 // 临时测试数据，在API调用失败时使用
@@ -49,154 +49,96 @@ const dummyTopics: RankTopic[] = [
   }
 ];
 
-const dummyTokens: TokenData[] = Array(50).fill(0).map((_, index) => ({
-  "token": `0xtoken${index}`,
-  "chain": index % 2 === 0 ? "bsc" : "eth",
-  "symbol": `TKN${index}`,
-  "name": `Token ${index}`,
-  "logo_url": `https://example.com/token${index}.png`,
-  "current_price_usd": Math.random() * 1000,
-  "price_change_24h": (Math.random() * 20) - 10,
-  "tx_volume_u_24h": Math.random() * 10000000,
-  "holders": Math.floor(Math.random() * 100000)
-}));
-
-// 缓存数据结构
-interface CacheItem {
-  data: any;
-  timestamp: number;
-}
-
-// 内存缓存对象，用于存储不同主题的数据
-const memoryCache: Record<string, CacheItem> = {};
-
-// 缓存有效期（1小时，单位为毫秒）
-const CACHE_TTL = parseInt(process.env.CACHE_TTL_TOKENS || '3600000');
-
-/**
- * 检查缓存是否有效
- * @param cacheKey 缓存键
- * @returns 缓存是否有效
- */
-function isMemoryCacheValid(cacheKey: string): boolean {
-  if (!memoryCache[cacheKey]) return false;
-  const now = Date.now();
-  return now - memoryCache[cacheKey].timestamp < CACHE_TTL;
-}
-
-/**
- * 从文件系统读取缓存
- * @param cacheKey 缓存键
- * @returns 缓存数据或null
- */
-async function readFileCache(cacheKey: string): Promise<any | null> {
-  try {
-    const filePath = join(CACHE_DIR, `${cacheKey}.json`);
-    const data = await fs.readFile(filePath, 'utf-8');
-    const cache = JSON.parse(data) as CacheItem;
-    
-    const now = Date.now();
-    if (now - cache.timestamp < CACHE_TTL) {
-      return cache.data;
-    }
-    
-    return null;
-  } catch (error) {
-    return null;
+// 默认代币作为备用数据
+const dummyTokens: TokenData[] = [
+  {
+    "token": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "chain": "eth",
+    "symbol": "USDT",
+    "name": "Tether",
+    "logo_url": "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png",
+    "current_price_usd": 1.0,
+    "price_change_24h": 0.01,
+    "tx_volume_u_24h": 50000000,
+    "holders": 5000000
+  },
+  {
+    "token": "0xB8c77482e45F1F44dE1745F52C74426C631bDD52",
+    "chain": "eth",
+    "symbol": "BNB",
+    "name": "BNB",
+    "logo_url": "https://s2.coinmarketcap.com/static/img/coins/64x64/1839.png",
+    "current_price_usd": 580.0,
+    "price_change_24h": 2.5,
+    "tx_volume_u_24h": 10000000,
+    "holders": 1000000
+  },
+  {
+    "token": "0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b",
+    "chain": "eth",
+    "symbol": "CRO",
+    "name": "Cronos",
+    "logo_url": "https://s2.coinmarketcap.com/static/img/coins/64x64/3635.png",
+    "current_price_usd": 0.1,
+    "price_change_24h": -1.2,
+    "tx_volume_u_24h": 5000000,
+    "holders": 500000
+  },
+  {
+    "token": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+    "chain": "eth",
+    "symbol": "UNI",
+    "name": "Uniswap",
+    "logo_url": "https://s2.coinmarketcap.com/static/img/coins/64x64/7083.png",
+    "current_price_usd": 7.5,
+    "price_change_24h": 3.1,
+    "tx_volume_u_24h": 8000000,
+    "holders": 700000
+  },
+  {
+    "token": "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0",
+    "chain": "eth",
+    "symbol": "MATIC",
+    "name": "Polygon",
+    "logo_url": "https://s2.coinmarketcap.com/static/img/coins/64x64/3890.png",
+    "current_price_usd": 0.6,
+    "price_change_24h": -0.8,
+    "tx_volume_u_24h": 6000000,
+    "holders": 600000
   }
-}
+];
 
 /**
- * 写入文件系统缓存
- * @param cacheKey 缓存键
- * @param data 缓存数据
+ * 将API返回的代币数据转换为统一格式
  */
-async function writeFileCache(cacheKey: string, data: any): Promise<void> {
-  try {
-    const cache: CacheItem = {
-      data,
-      timestamp: Date.now()
-    };
-    
-    const filePath = join(CACHE_DIR, `${cacheKey}.json`);
-    await fs.mkdir(CACHE_DIR, { recursive: true });
-    await fs.writeFile(filePath, JSON.stringify(cache, null, 2), 'utf-8');
-  } catch (error) {
-    console.error(`Error writing file cache for ${cacheKey}:`, error);
-  }
+function formatTokenData(tokens: any[]): TokenData[] {
+  return tokens.map(token => ({
+    token: token.token || "",
+    chain: token.chain || "unknown",
+    symbol: token.symbol || "Unknown",
+    name: token.name || "Unknown Token",
+    logo_url: token.logo_url || "",
+    current_price_usd: typeof token.current_price_usd === 'number' 
+      ? token.current_price_usd 
+      : parseFloat(token.current_price_usd || '0') || 0,
+    price_change_24h: typeof token.price_change_24h === 'number' 
+      ? token.price_change_24h 
+      : parseFloat(token.price_change_24h || '0') || 0,
+    tx_volume_u_24h: typeof token.tx_volume_u_24h === 'number' 
+      ? token.tx_volume_u_24h 
+      : parseFloat(token.tx_volume_u_24h || '0') || 0,
+    holders: typeof token.holders === 'number' 
+      ? token.holders 
+      : parseInt(token.holders || '0') || 0,
+    market_cap: token.market_cap || "0",
+    fdv: token.fdv || "0",
+    risk_score: token.risk_score || "0"
+  }));
 }
 
-/**
- * 获取真实API数据
- * @param endpoint API端点
- * @returns API响应数据
- */
-async function fetchAveApiData(endpoint: string) {
-  console.log(`Fetching data from: ${endpoint}`);
-  try {
-    const response = await fetch(endpoint, {
-      headers: {
-        "Accept": "*/*",
-        "X-API-KEY": AVE_API_KEY
-      },
-      cache: 'no-store',
-    });
-    
-    console.log(`Response status: ${response.status}`);
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log("API response received:", JSON.stringify(data).substring(0, 100) + "...");
-    return data;
-  } catch (error) {
-    console.error(`Error fetching from ${endpoint}:`, error);
-    throw error;
-  }
-}
-
-/**
- * 将API返回的代币数据转换为我们需要的格式
- * @param apiData API返回的数据
- * @returns 转换后的数据
- */
-function transformTokenData(apiData: any[]): TokenData[] {
-  return apiData.map(token => {
-    // 尝试从appendix解析额外信息
-    let tokenName = token.symbol || "";
-    try {
-      if (token.appendix) {
-        const appendixData = JSON.parse(token.appendix);
-        if (appendixData.tokenName) {
-          tokenName = appendixData.tokenName;
-        }
-      }
-    } catch (e) {
-      console.error('Error parsing appendix data:', e);
-    }
-
-    return {
-      token: token.token || "",
-      chain: token.chain || "",
-      symbol: token.symbol || "",
-      name: tokenName || token.symbol || "Unknown Token",
-      logo_url: token.logo_url || "",
-      current_price_usd: parseFloat(token.current_price_usd) || 0,
-      price_change_24h: parseFloat(token.price_change_24h) || 0,
-      tx_volume_u_24h: parseFloat(token.tx_volume_u_24h) || 0,
-      holders: parseInt(token.holders) || 0,
-      market_cap: token.market_cap || "0",
-      fdv: token.fdv || "0",
-      risk_score: token.risk_score || "0"
-    };
-  });
-}
-
-// Get token rank topics
+// GET token rank topics or token list
 export async function GET(request: Request) {
-  console.log("API route called:", request.url);
+  console.log("Tokens API route called:", request.url);
   const { searchParams } = new URL(request.url);
   const topic = searchParams.get('topic') || 'hot';
   console.log("Topic requested:", topic);
@@ -204,158 +146,96 @@ export async function GET(request: Request) {
   try {
     // 如果请求的是话题列表
     if (topic === 'topics') {
-      const cacheKey = 'topics';
+      const cacheKey = 'token_rank_topics';
       
-      // 检查内存缓存是否有效
-      if (isMemoryCacheValid(cacheKey)) {
-        console.log("Returning cached topics data from memory");
-        return NextResponse.json({ topics: memoryCache[cacheKey].data }, { status: 200 });
-      }
-      
-      // 检查文件缓存
-      const fileCache = await readFileCache(cacheKey);
-      if (fileCache) {
-        console.log("Returning cached topics data from file");
-        // 同时更新内存缓存
-        memoryCache[cacheKey] = {
-          data: fileCache,
-          timestamp: Date.now()
-        };
-        return NextResponse.json({ topics: fileCache }, { status: 200 });
+      // 检查缓存
+      const cachedTopics = cacheService.get(cacheKey);
+      if (cachedTopics) {
+        console.log("Returning cached topics data");
+        return NextResponse.json({ topics: cachedTopics }, { status: 200 });
       }
       
       console.log("Fetching fresh topics data from Ave.ai API");
       
-      // 尝试获取真实数据
       try {
-        const data = await fetchAveApiData("https://prod.ave-api.com/v2/ranks/topics");
+        // 尝试获取真实数据
+        const topicList = await getTokenRankTopics();
+        console.log("Topics directly from API:", topicList);
         
-        if (data.status !== 1 || !data.data) {
-          console.error("Invalid API response format:", data);
-          throw new Error('Invalid response format or unsuccessful request');
+        // API now returns the topics in the correct format, so we don't need to transform
+        if (topicList && topicList.length > 0) {
+          console.log("Using API topics directly");
+          
+          // 更新缓存
+          cacheService.set(cacheKey, topicList, { ttl: CACHE_TTL.LONG });
+          
+          console.log("Returning topics data");
+          return NextResponse.json({ topics: topicList }, { status: 200 });
+        } else {
+          console.error("Empty or invalid topics data received from API");
+          throw new Error('Empty or invalid topics data received from API');
         }
-        
-        // 更新内存缓存
-        memoryCache[cacheKey] = {
-          data: data.data,
-          timestamp: Date.now()
-        };
-        
-        // 更新文件缓存
-        await writeFileCache(cacheKey, data.data);
-        
-        console.log("Returning fresh topics data and updating cache");
-        return NextResponse.json({ topics: data.data }, { status: 200 });
       } catch (apiError) {
-        console.error("Error fetching from Ave.ai, using dummy data:", apiError);
+        console.error("Error fetching from Ave.ai, using dummy topics:", apiError);
         
-        // 如果API调用失败，使用测试数据
-        memoryCache[cacheKey] = {
-          data: dummyTopics,
-          timestamp: Date.now()
-        };
+        // 更新缓存 - 即使是备用数据也缓存一小段时间
+        cacheService.set(cacheKey, dummyTopics, { ttl: CACHE_TTL.SHORT });
         
         return NextResponse.json({ topics: dummyTopics }, { status: 200 });
       }
-    } 
-    // 否则返回特定主题的代币列表
+    }
+    
+    // 如果请求的是代币列表
     else {
-      const cacheKey = `tokens_${topic}`;
+      const cacheKey = `token_rank_${topic}`;
       
-      // 检查内存缓存是否有效
-      if (isMemoryCacheValid(cacheKey)) {
-        console.log(`Returning cached tokens data for topic: ${topic} from memory`);
-        return NextResponse.json({ 
-          topic: topic,
-          tokens: memoryCache[cacheKey].data 
-        }, { status: 200 });
+      // 检查缓存
+      const cachedTokens = cacheService.get(cacheKey);
+      if (cachedTokens) {
+        console.log(`Returning cached token data for topic: ${topic}`);
+        return NextResponse.json({ tokens: cachedTokens }, { status: 200 });
       }
       
-      // 检查文件缓存
-      const fileCache = await readFileCache(cacheKey);
-      if (fileCache) {
-        console.log(`Returning cached tokens data for topic: ${topic} from file`);
-        // 同时更新内存缓存
-        memoryCache[cacheKey] = {
-          data: fileCache,
-          timestamp: Date.now()
-        };
-        return NextResponse.json({ 
-          topic: topic,
-          tokens: fileCache 
-        }, { status: 200 });
-      }
+      console.log(`Fetching fresh token data for topic: ${topic} from Ave.ai API`);
       
-      console.log(`Fetching fresh tokens data for topic: ${topic} from Ave.ai API`);
-      
-      // 尝试获取真实数据
       try {
-        // 使用正确的API端点
-        const data = await fetchAveApiData(`https://prod.ave-api.com/v2/ranks?topic=${topic}`);
+        // 尝试获取真实数据
+        const tokenList = await getTokenRankList({
+          topic: topic,
+          limit: 50 // 最多获取50个代币
+        });
         
-        if (data.status !== 1 || !data.data) {
-          console.error("Invalid API response format:", data);
-          throw new Error('Invalid response format or unsuccessful request');
+        if (tokenList && tokenList.length > 0) {
+          // 格式化代币数据
+          const formattedTokens = formatTokenData(tokenList);
+          
+          // 更新缓存
+          cacheService.set(cacheKey, formattedTokens, { ttl: CACHE_TTL.MEDIUM });
+          
+          console.log(`Returning ${formattedTokens.length} tokens for topic: ${topic}`);
+          return NextResponse.json({ tokens: formattedTokens }, { status: 200 });
+        } else {
+          throw new Error(`Empty or invalid token data received from API for topic: ${topic}`);
         }
-        
-        // 转换数据格式
-        const transformedData = transformTokenData(data.data);
-        
-        // 更新内存缓存
-        memoryCache[cacheKey] = {
-          data: transformedData,
-          timestamp: Date.now()
-        };
-        
-        // 更新文件缓存
-        await writeFileCache(cacheKey, transformedData);
-        
-        console.log(`Returning fresh tokens data for topic: ${topic} and updating cache`);
-        return NextResponse.json({ 
-          topic: topic,
-          tokens: transformedData 
-        }, { status: 200 });
       } catch (apiError) {
-        console.error(`Error fetching from Ave.ai for topic ${topic}, using dummy data:`, apiError);
+        console.error(`Error fetching tokens for topic: ${topic}, using dummy data:`, apiError);
         
-        // 如果API调用失败，使用测试数据
-        memoryCache[cacheKey] = {
-          data: dummyTokens,
-          timestamp: Date.now()
-        };
+        // 更新缓存 - 即使是备用数据也缓存一小段时间
+        cacheService.set(cacheKey, dummyTokens, { ttl: CACHE_TTL.SHORT });
         
-        return NextResponse.json({ 
-          topic: topic,
-          tokens: dummyTokens 
-        }, { status: 200 });
+        return NextResponse.json({ tokens: dummyTokens }, { status: 200 });
       }
     }
   } catch (error) {
-    console.error("Error in API route handler:", error);
+    console.error("Unhandled error in tokens API route:", error);
     
-    // 如果有缓存但已过期，仍然可以在API失败时返回过期的缓存数据
-    const cacheKey = topic === 'topics' ? 'topics' : `tokens_${topic}`;
-    if (memoryCache[cacheKey]) {
-      console.log(`API request failed, returning stale cache for ${cacheKey}`);
-      if (topic === 'topics') {
-        return NextResponse.json({ topics: memoryCache[cacheKey].data }, { status: 200 });
-      } else {
-        return NextResponse.json({ 
-          topic: topic,
-          tokens: memoryCache[cacheKey].data 
-        }, { status: 200 });
-      }
-    }
-    
-    // 如果连缓存都没有，返回测试数据
-    console.log("No cache available, returning dummy data");
-    if (topic === 'topics') {
-      return NextResponse.json({ topics: dummyTopics }, { status: 200 });
-    } else {
-      return NextResponse.json({ 
-        topic: topic,
-        tokens: dummyTokens 
-      }, { status: 200 });
-    }
+    // 为了确保前端不会因为API错误而完全崩溃，我们返回一个有用的错误响应
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ 
+      error: "Failed to fetch token data",
+      message: errorMessage,
+      // 即使在错误的情况下也提供备用数据
+      tokens: topic === 'topics' ? dummyTopics : dummyTokens 
+    }, { status: 500 });
   }
 } 

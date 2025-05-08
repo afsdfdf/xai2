@@ -1,150 +1,208 @@
-# XAI Finance Web App
+# XAI2 加密货币交易应用
 
-一个基于Next.js的Web3金融应用，提供加密货币行情跟踪、K线分析和Web3应用发现等功能。
-
-## 特点
-
-- 🌙 支持深色/浅色模式
-- 📊 加密货币价格和趋势追踪
-- 📈 实时K线图和市场分析
-- 👤 用户个人资料管理
-- 🔍 Web3应用发现和热门排名
-- 📱 响应式设计，适合移动端使用
-- 🔄 Python API后端，提供实时代币数据
-
-## 主要页面
-
-- 首页：热门代币、搜索、最新行情
-- 市场页：详细价格图表和交易数据
-- K线页：专业图表分析工具
-- 发现页：Web3应用分类和热门排行
-- 用户个人页：账户设置和管理
+XAI2是一个基于Next.js开发的加密货币交易应用，提供代币搜索、市场排行榜、K线图表等功能。
 
 ## 技术栈
 
-- Next.js 15
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui组件库
-- Python Flask API服务
-- Vercel部署
+- **前端框架**：Next.js 14 (App Router)
+- **UI库**：Tailwind CSS + shadcn/ui
+- **图表**：Lightweight Charts
+- **类型系统**：TypeScript
+- **API集成**：Ave.ai API
+- **错误处理**：自定义ErrorBoundary
+- **性能监控**：自定义性能跟踪工具
 
-## 安装和运行
+## 项目结构
 
-1. 克隆项目仓库：
-
-```bash
-git clone https://github.com/你的用户名/xai6.git
-cd xai6
+```
+app/
+  ├── api/                 # API路由
+  │   ├── tokens/          # 代币数据API
+  │   ├── token-details/   # 代币详情API
+  │   └── token-kline/     # K线数据API
+  ├── components/          # 组件
+  │   ├── token-rankings/  # 代币排行组件(模块化)
+  │   └── ui/              # UI组件
+  ├── hooks/               # 自定义钩子
+  ├── lib/                 # 业务逻辑库
+  │   └── monitoring/      # 监控工具
+  ├── types/               # 类型定义
+  ├── utils/               # 工具函数
+  └── constants/           # 常量定义
 ```
 
-2. 安装依赖：
+## 核心功能模块
+
+### 1. 错误边界系统
+
+应用实现了统一的错误边界组件，用于捕获和处理React渲染过程中的JavaScript错误。
+
+```typescript
+// 使用示例
+<ErrorBoundary 
+  filterErrors={(error) => error.message.includes('ethereum')}
+  onError={(error, info) => logToService(error, info)}
+>
+  <YourComponent />
+</ErrorBoundary>
+```
+
+### 2. 代币排行系统
+
+代币排行模块采用了模块化设计，分离了视图和数据逻辑：
+
+- `useTokenData` hook处理数据获取和状态管理
+- 子组件处理不同的UI部分(TopicTabs, TokenCard等)
+- 性能优化技术包括图像错误处理和懒加载
+
+### 3. K线图表系统
+
+K线图表系统基于LightweightCharts库，支持多种时间周期和指标：
+
+- 支持实时数据更新
+- 错误自动恢复机制
+- 性能监控和诊断工具
+
+### 4. API集成与缓存
+
+项目使用Ave.ai API获取加密货币数据：
+
+- 实现了API请求性能跟踪
+- 错误处理和重试机制
+- 本地缓存减少重复请求
+
+## 主要组件说明
+
+### ErrorBoundary
+
+统一的错误边界组件，支持：
+
+- 自定义错误UI
+- 错误过滤器
+- 重置功能
+- 错误日志记录
+
+```typescript
+// 位置: app/components/ErrorBoundary.tsx
+```
+
+### TokenRankings
+
+代币排行模块，采用模块化设计：
+
+```typescript
+// 位置: app/components/token-rankings/index.tsx
+// 子组件: TokenCard.tsx, TopicTabs.tsx等
+```
+
+### 性能监控工具
+
+自定义性能监控工具，支持组件渲染和API请求性能跟踪：
+
+```typescript
+// 位置: app/lib/monitoring/performance.ts
+// 相关hook: app/hooks/usePerformanceTracking.ts
+```
+
+## API服务
+
+项目的后端API服务包括：
+
+### 1. 代币排行API
+
+```
+GET /api/tokens?topic={topicId}
+```
+
+返回指定主题的代币排行数据。
+
+### 2. 代币详情API
+
+```
+GET /api/token-details?blockchain={chain}&address={tokenAddress}
+```
+
+返回指定代币的详细信息。
+
+### 3. K线数据API
+
+```
+GET /api/token-kline?blockchain={chain}&address={tokenAddress}&timeframe={timeframe}
+```
+
+返回指定代币的K线数据。
+
+## 开发指南
+
+### 1. 环境配置
 
 ```bash
+# 安装依赖
 npm install
-```
 
-### 只运行前端
-
-3. 运行开发服务器：
-
-```bash
+# 开发环境运行
 npm run dev
-```
 
-4. 打开浏览器访问：http://localhost:3000
-
-### 运行前端和Python API后端
-
-3. 安装Python依赖：
-
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-
-# Linux/macOS
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-4. 启动开发环境（使用脚本启动两个服务器）：
-
-```bash
-# Windows
-start.bat
-
-# Linux/macOS
-chmod +x start.sh
-./start.sh
-```
-
-5. 打开浏览器访问：http://localhost:3000
-
-### Python API后端
-
-Python Flask服务提供以下API端点：
-
-- `/api/token-boosts` - 获取热门代币数据
-- `/health` - 健康检查接口
-
-详细信息请查看 [API_README.md](API_README.md)
-
-## 构建生产版本
-
-```bash
+# 构建生产版本
 npm run build
+
+# 启动生产版本
 npm start
 ```
 
-## 部署
+### 2. 添加新组件
 
-该项目可以部署到Vercel或其他支持Next.js的平台。Python API后端可以部署到支持Python的平台，如Heroku、AWS Lambda等。
+遵循以下模式添加新组件：
 
-## Vercel部署
+1. 在`app/components`目录下创建组件文件
+2. 如果是复杂组件，创建子目录并拆分成多个子组件
+3. 使用ErrorBoundary包裹组件以确保错误不会级联
+4. 使用usePerformanceTracking监控组件性能
 
-本项目可以轻松部署到Vercel平台。
+### 3. API扩展
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F你的用户名%2Fxai6)
+添加新的API端点：
 
-### 部署步骤
+1. 在`app/api`目录下创建新的路由文件
+2. 使用监控工具包装API调用
+3. 实现适当的错误处理和响应格式化
 
-1. 将代码推送到GitHub仓库
-2. 在Vercel上导入项目
-3. 选择GitHub仓库
-4. 配置部署选项
-   - 构建命令: `pnpm run build`
-   - 输出目录: `.next`
-   - 安装命令: `pnpm install`
-5. 设置环境变量
-   - `NEXT_PUBLIC_API_BASE_URL`: API基础URL（默认为空）
-   - `NEXT_PUBLIC_APP_URL`: 应用URL
-6. 点击部署
+## 性能优化建议
 
-## 环境变量
+1. **代码分割**：对大型组件使用动态导入
+2. **图像优化**：继续优化图像加载和错误处理
+3. **缓存策略**：实现更智能的API响应缓存
+4. **预取数据**：为常用路由预取数据
 
-创建一个`.env.local`文件，并设置以下环境变量：
+## 安全考虑
 
-```
-NEXT_PUBLIC_API_BASE_URL=""
-NEXT_PUBLIC_APP_URL="https://你的域名.vercel.app"
-```
+1. **API密钥保护**：确保API密钥不暴露在前端代码中
+2. **数据验证**：在API端点实现严格的输入验证
+3. **错误消息**：确保生产环境中不暴露敏感错误信息
 
-## API接口
+## 未来扩展
 
-项目使用Ave.ai API获取代币数据。API密钥已包含在代码中。
+1. **用户认证系统**：实现用户登录和个人设置
+2. **交易集成**：集成实际交易功能
+3. **通知系统**：添加价格提醒和市场通知
+4. **移动应用**：使用React Native开发移动应用
+
+## 常见问题排查
+
+1. **API请求失败**：检查API密钥和日志中的错误消息
+2. **图表加载问题**：使用ChartDiagnostic组件调试
+3. **组件错误**：查看ErrorBoundary捕获的错误信息
 
 ## 贡献指南
 
-1. Fork本仓库
-2. 创建特性分支: `git checkout -b my-new-feature`
-3. 提交更改: `git commit -am 'Add some feature'`
-4. 推送到分支: `git push origin my-new-feature`
-5. 提交Pull Request
+1. 创建功能分支
+2. 遵循TypeScript类型定义
+3. 确保代码符合项目结构和命名约定
+4. 提交前进行测试
 
-## 许可证
+## 代码规范
 
-MIT
+1. 使用TypeScript类型注解
+2. 使用功能组件和React Hooks
+3. 保持组件小而聚焦
+4. 防止业务逻辑与UI混合

@@ -19,6 +19,14 @@ export default function EthereumProtection() {
 
         // 创建一个隔离的环境来保存原始ethereum对象
         const originalEthereumDescriptor = Object.getOwnPropertyDescriptor(window, 'ethereum');
+        
+        // 如果ethereum已经被设置为不可配置，不再尝试改变它
+        if (originalEthereumDescriptor && originalEthereumDescriptor.configurable === false) {
+          // 只安装错误处理器，不修改ethereum
+          const removeErrorHandlers = installGlobalErrorHandlers();
+          return removeErrorHandlers;
+        }
+        
         let originalEthereum = (window as any).ethereum;
 
         // 如果ethereum对象尚未存在，创建一个存根对象以便后续扩展可以使用
@@ -39,44 +47,34 @@ export default function EthereumProtection() {
           // 忽略冻结失败
         }
 
-        // 定义一个永久的getter，始终返回我们保存的原始ethereum对象
-        try {
-          Object.defineProperty(window, 'ethereum', {
-            configurable: false,  // 防止被重新定义
-            enumerable: true,     // 保持可枚举性
-            get: function() {
-              return originalEthereum;
-            },
-            set: function() {
-              // 静默忽略任何设置尝试
-              return originalEthereum;
-            }
-          });
-        } catch (e) {
-          // 如果无法重定义属性（可能已经被定义为不可配置），则忽略错误
-          // 使用更安全的方式记录错误，避免循环引用
-          if (process.env.NODE_ENV !== 'production') {
-            // 直接使用原始console.error，避免使用safeLogError造成循环引用
-            try {
-              const errorMsg = e instanceof Error ? e.message : 'Unknown error';
-              console.warn(`[EthereumProtection] 定义属性失败: ${errorMsg}`);
-            } catch (_) {
-              // 完全忽略任何错误
+        // 仅在属性可配置或不存在时尝试定义
+        if (!originalEthereumDescriptor || originalEthereumDescriptor.configurable !== false) {
+          try {
+            Object.defineProperty(window, 'ethereum', {
+              configurable: false,  // 防止被重新定义
+              enumerable: true,     // 保持可枚举性
+              get: function() {
+                return originalEthereum;
+              },
+              set: function() {
+                // 静默忽略任何设置尝试
+                return originalEthereum;
+              }
+            });
+          } catch (e) {
+            // 如果无法重定义属性（可能已经被定义为不可配置），则忽略错误
+            // 使用更安全的方式记录错误，避免循环引用
+            if (process.env.NODE_ENV !== 'production') {
+              // 直接使用原始console.error，避免使用safeLogError造成循环引用
+              try {
+                const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+                console.warn(`[EthereumProtection] 定义属性失败: ${errorMsg}`);
+              } catch (_) {
+                // 完全忽略任何错误
+              }
             }
           }
         }
-
-        // 拦截Object.defineProperty，防止其他脚本修改ethereum
-        const originalDefineProperty = Object.defineProperty;
-        Object.defineProperty = function(this: typeof Object, obj: any, prop: PropertyKey, attributes: PropertyDescriptor): any {
-          // 如果有人试图修改window.ethereum，则阻止
-          if (obj === window && prop === 'ethereum') {
-            return window;
-          }
-          
-          // 对其他属性使用原始的defineProperty
-          return originalDefineProperty.apply(this, [obj, prop, attributes]);
-        } as typeof Object.defineProperty;
 
         // 安装全局错误处理器
         const removeErrorHandlers = installGlobalErrorHandlers();

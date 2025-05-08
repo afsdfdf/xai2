@@ -73,14 +73,26 @@ export function installGlobalErrorHandlers(): () => void {
     // 替换console.error，避免显示特定错误
     console.error = function(...args) {
       try {
+        // 检查是否有参数
+        if (args.length === 0) {
+          return originalConsoleError.apply(console, args);
+        }
+        
+        // 转换第一个参数为字符串进行检查
         const errorString = String(args[0] || '');
         
         // 过滤掉特定错误
         if (
           errorString.includes('[object Object]') ||
           errorString.includes('ethereum') ||
-          errorString.includes('Cannot redefine property')
+          errorString.includes('Cannot redefine property') ||
+          errorString.includes('inpage.js')
         ) {
+          // 在开发环境打印被过滤掉的错误的简短通知
+          if (process.env.NODE_ENV !== 'production') {
+            // 使用原始console避免递归调用
+            originalConsoleLog.call(console, '[已过滤错误] ' + errorString.substring(0, 50) + (errorString.length > 50 ? '...' : ''));
+          }
           return;
         }
         
@@ -128,7 +140,9 @@ export function installGlobalErrorHandlers(): () => void {
         if (
           errorMsg.includes('[object Object]') ||
           errorMsg.includes('ethereum') ||
-          errorMsg.includes('Cannot redefine property')
+          errorMsg.includes('Cannot redefine property') ||
+          errorMsg.includes('inpage.js') ||
+          (event.filename && event.filename.includes('inpage.js'))
         ) {
           event.preventDefault();
           return false;
@@ -146,7 +160,8 @@ export function installGlobalErrorHandlers(): () => void {
         if (
           errorMsg.includes('[object Object]') ||
           errorMsg.includes('ethereum') ||
-          errorMsg.includes('Cannot redefine property')
+          errorMsg.includes('Cannot redefine property') ||
+          errorMsg.includes('inpage.js')
         ) {
           event.preventDefault();
           return false;
