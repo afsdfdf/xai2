@@ -61,7 +61,7 @@ export default function CryptoTracker() {
   const handleSearch = async () => {
     if (!searchValue.trim()) {
       toast({
-        title: "搜索为空",
+        title: "请输入搜索内容",
         description: "请输入代币名称或合约地址",
         variant: "destructive",
       });
@@ -72,14 +72,35 @@ export default function CryptoTracker() {
     setShowResults(true);
     
     try {
+      console.log(`Searching for tokens: ${searchValue}`);
       const results = await searchTokens(searchValue);
-      setSearchResults(results);
+      
+      // Handle empty results case more gracefully
+      if (results && results.length > 0) {
+        console.log(`Found ${results.length} tokens`);
+        setSearchResults(results);
+      } else {
+        console.log('No search results found');
+        setSearchResults([]);
+        toast({
+          title: "没有找到结果",
+          description: "找不到与您的搜索匹配的代币",
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error("搜索错误:", error);
       setSearchResults([]);
+      
+      // More descriptive error message
+      let errorMsg = "无法获取搜索结果，请稍后再试";
+      if (error instanceof Error) {
+        errorMsg = `搜索错误: ${error.message}`;
+      }
+      
       toast({
         title: "搜索失败",
-        description: "无法获取搜索结果，请稍后再试",
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {

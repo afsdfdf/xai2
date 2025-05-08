@@ -1,71 +1,82 @@
-export function EthereumProtectionScript() {
-  // 这个脚本在页面加载时最早执行，保护window.ethereum免受后续修改
-  const script = `
-    (function() {
-      try {
-        // 保存原始的ethereum对象
-        var originalEthereum = window.ethereum;
-        
-        // 创建一个默认的存根对象（如果ethereum不存在）
-        if (!originalEthereum) {
-          originalEthereum = {
-            isPhantom: false,
-            isCoinbaseWallet: false,
-            isMetaMask: false,
-            _isStub: true,
-            request: function() { return Promise.reject('Ethereum provider not initialized'); }
-          };
-        }
+"use client"
 
-        // 防止修改ethereum对象
-        Object.defineProperty(window, 'ethereum', {
-          configurable: false,
-          enumerable: true,
-          get: function() { return originalEthereum; },
-          set: function() { return originalEthereum; }
-        });
+import Script from "next/script"
+import React from "react"
 
-        // 捕获并忽略ethereum相关错误
-        window.addEventListener('error', function(e) {
-          if (e && e.message && (
-            e.message.includes('ethereum') || 
-            e.message.includes('Cannot redefine property')
-          )) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-          }
-          return true;
-        }, true);
-
-        // 捕获未处理的Promise拒绝
-        window.addEventListener('unhandledrejection', function(e) {
-          try {
-            var errorMsg = String(e.reason || '');
-            if (
-              errorMsg.includes('ethereum') || 
-              errorMsg.includes('Cannot redefine property') ||
-              errorMsg.includes('[object Object]')
-            ) {
-              e.preventDefault();
-              e.stopPropagation();
-              return false;
-            }
-          } catch (err) {}
-          return true;
-        }, true);
-
-        // 不再使用console.log，避免潜在问题
-      } catch(e) {
-        // 忽略任何错误
-      }
-    })();
-  `;
-
+export const EthereumProtectionScript: React.FC = () => {
   return (
-    <script 
-      id="ethereum-protection-script" 
-      dangerouslySetInnerHTML={{ __html: script }}
-    />
-  );
+    <>
+      <Script
+        id="ethereum-protection-script"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            /* 保护用户不被钓鱼攻击 */
+            window.addEventListener('DOMContentLoaded', () => {
+              function protectAddress() {
+                /* 保护用户地址不被复制或选择 */
+                const elements = document.querySelectorAll('.eth-address');
+                elements.forEach(el => {
+                  el.setAttribute('unselectable', 'on');
+                  el.setAttribute('style', 'user-select: none;');
+                });
+              }
+              
+              setInterval(protectAddress, 1000);
+            });
+          `,
+        }}
+      />
+    </>
+  )
+}
+
+export const LightweightChartsPreloader: React.FC = () => {
+  return (
+    <>
+      <Script
+        id="lightweight-charts-preloader"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            /* 预加载Lightweight Charts库 */
+            (function() {
+              try {
+                console.log('预加载Lightweight Charts库...');
+                
+                // 检查是否已加载
+                if (window.LightweightCharts) {
+                  console.log('Lightweight Charts库已加载');
+                  return;
+                }
+                
+                // 创建script标签
+                var script = document.createElement('script');
+                script.id = 'lightweight-charts-script';
+                script.src = 'https://unpkg.com/lightweight-charts@4.0.1/dist/lightweight-charts.standalone.production.js';
+                script.crossOrigin = 'anonymous';
+                script.async = false; // 同步加载以确保顺序
+                
+                // 添加到文档
+                document.head.appendChild(script);
+                
+                console.log('Lightweight Charts预加载脚本已添加');
+                
+                // 设置超时检查
+                setTimeout(function() {
+                  if (!window.LightweightCharts) {
+                    console.warn('警告: Lightweight Charts库加载可能失败');
+                  } else {
+                    console.log('确认: Lightweight Charts库加载成功');
+                  }
+                }, 5000);
+              } catch (e) {
+                console.error('预加载Lightweight Charts库出错:', e);
+              }
+            })();
+          `,
+        }}
+      />
+    </>
+  )
 } 

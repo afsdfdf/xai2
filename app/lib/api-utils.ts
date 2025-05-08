@@ -92,14 +92,30 @@ export async function apiRequest<T = any>(
 
     // 处理API错误
     if (error instanceof ApiError) {
-      // 如果还有重试次数且不是服务器错误，则重试
-      if (retries > 0 && error.status >= 500) {
-        console.log(`请求失败，${retryDelay}ms后重试，剩余重试次数: ${retries}`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      // 确定是否应该重试
+      const shouldRetry = retries > 0 && (
+        // 服务器错误
+        error.status >= 500 || 
+        // 或者是429速率限制错误
+        error.status === 429 ||
+        // 或者是网络相关错误
+        error.status === 0 || 
+        error.status === 408
+      );
+      
+      if (shouldRetry) {
+        // 对于速率限制错误，使用更长的延迟
+        const actualRetryDelay = error.status === 429 
+          ? retryDelay * 2 
+          : retryDelay;
+        
+        console.log(`请求失败(${error.status})，${actualRetryDelay}ms后重试，剩余重试次数: ${retries}`);
+        await new Promise(resolve => setTimeout(resolve, actualRetryDelay));
+        
         return apiRequest<T>(endpoint, {
           ...options,
           retries: retries - 1,
-          retryDelay: retryDelay * 1.5, // 指数退避
+          retryDelay: actualRetryDelay * 1.5, // 指数退避
         });
       }
       throw error;

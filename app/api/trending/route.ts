@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getTokenRankList } from "@/app/lib/ave-api-service"
+import { cacheService, CACHE_TTL } from "@/app/lib/cache-service"
 
 // 定义热门代币接口
 export interface TrendingToken {
@@ -727,140 +729,94 @@ function generateMockData() {
   }
 }
 
-// 获取热门代币列表
-export async function GET() {
+/**
+ * GET 处理程序
+ * 获取热门代币列表
+ */
+export async function GET(request: Request) {
+  // 获取查询参数
+  const { searchParams } = new URL(request.url);
+  const chain = searchParams.get('chain') || undefined;
+  const limit = parseInt(searchParams.get('limit') || '20');
+  
+  console.log(`Fetching trending tokens. Chain: ${chain || 'all'}, Limit: ${limit}`);
+  
+  // 生成缓存键
+  const cacheKey = `trending_tokens_${chain || 'all'}_${limit}`;
+  
+  // 检查缓存
+  const cachedData = cacheService.get(cacheKey);
+  if (cachedData) {
+    console.log('Returning cached trending tokens');
+    return NextResponse.json(cachedData);
+  }
+  
   try {
-    // 从 crypto API 获取热门代币
-    const response = await fetch("/api/crypto", {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Cache-Control": "no-cache",
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`API返回错误: ${response.status}`)
-    }
-
-    const data = await response.json()
+    // 调用AVE API获取热门代币
+    const tokens = await getTokenRankList({
+      topic: 'hot', // 热门主题
+      chain,
+      limit
+    });
     
-    // 转换数据格式
-    let trendingTokens: TrendingToken[] = []
-    let newListings: TrendingToken[] = []
-    let highVolume: TrendingToken[] = []
-
-    if (data.success && data.data) {
-      // 从 popularTokens 生成主要趋势代币列表
-      trendingTokens = data.data.popularTokens.map((token: any, index: number) => ({
-        id: token.id,
-        name: token.name,
-        symbol: token.symbol,
-        price: token.price,
-        priceUsd: `$${token.price.toLocaleString()}`,
-        change24h: token.change,
-        volume24h: 10000000 + Math.random() * 10000000,
-        volumeUsd: `$${(10 + Math.random() * 20).toFixed(2)}M`,
-        marketCap: 1000000000 + Math.random() * 10000000000,
-        marketCapUsd: `$${(1 + Math.random() * 10).toFixed(2)}B`,
-        chainId: "1",
-        chain: "ethereum",
-        address: `0x${Math.random().toString(16).substring(2, 42)}`,
-        logo: `https://assets.coingecko.com/coins/images/${Math.floor(Math.random() * 20) + 1}/large/coin.png`,
-        color: token.color,
-        rank: index + 1,
-        trending: Math.random() > 0.5 ? "up" : "down"
-      }))
-
-      // 确保我们有30个热门代币
-      // 如果 API 返回的代币数少于 30 个，使用 trendingTokens 和模拟数据补充
-      if (trendingTokens.length < 30) {
-        const mockData = generateMockData();
-        const requiredExtraTokens = 30 - trendingTokens.length;
-        
-        // 使用模拟数据中的代币来补充列表
-        const extraTokens = mockData.trending
-          .filter(token => !trendingTokens.some(t => t.id === token.id))
-          .slice(0, requiredExtraTokens)
-          .map((token, index) => ({
-            ...token,
-            rank: trendingTokens.length + index + 1 // 确保 rank 是连续的
-          }));
-        
-        trendingTokens = [...trendingTokens, ...extraTokens];
-      }
-
-      // 从 trendingTokens 生成新上线列表和高交易量列表
-      if (data.data.trendingTokens && data.data.trendingTokens.length > 0) {
-        newListings = data.data.trendingTokens.slice(0, 3).map((token: any, index: number) => ({
-          id: token.id,
-          name: token.name,
-          symbol: token.symbol,
-          price: token.price,
-          priceUsd: `$${token.price.toLocaleString()}`,
-          change24h: token.change,
-          volume24h: 5000000 + Math.random() * 10000000,
-          volumeUsd: `$${(5 + Math.random() * 10).toFixed(2)}M`,
-          marketCap: 500000000 + Math.random() * 1000000000,
-          marketCapUsd: `$${(0.5 + Math.random() * 1).toFixed(2)}B`,
-          chainId: "1",
-          chain: Math.random() > 0.5 ? "ethereum" : "binance-smart-chain",
-          address: `0x${Math.random().toString(16).substring(2, 42)}`,
-          logo: `https://assets.coingecko.com/coins/images/${Math.floor(Math.random() * 20) + 100}/large/coin.png`,
-          color: token.color,
-          rank: 50 + index,
-          trending: "up"
-        }))
-
-        highVolume = data.data.trendingTokens.slice(0, 3).map((token: any, index: number) => ({
-          id: token.id,
-          name: token.name,
-          symbol: token.symbol,
-          price: token.price,
-          priceUsd: `$${token.price.toLocaleString()}`,
-          change24h: token.change,
-          volume24h: 50000000 + Math.random() * 100000000,
-          volumeUsd: `$${(50 + Math.random() * 100).toFixed(2)}M`,
-          marketCap: 5000000000 + Math.random() * 10000000000,
-          marketCapUsd: `$${(5 + Math.random() * 10).toFixed(2)}B`,
-          chainId: "1",
-          chain: Math.random() > 0.3 ? "ethereum" : "solana",
-          address: `0x${Math.random().toString(16).substring(2, 42)}`,
-          logo: `https://assets.coingecko.com/coins/images/${Math.floor(Math.random() * 20) + 200}/large/coin.png`,
-          color: token.color,
-          rank: 10 + index,
-          trending: Math.random() > 0.3 ? "up" : "down"
-        }))
-      }
+    if (!tokens || tokens.length === 0) {
+      console.log('No trending tokens found');
+      return NextResponse.json({
+        success: true,
+        tokens: [],
+        count: 0,
+        message: "No trending tokens found"
+      }, { status: 200 });
     }
-
-    // 如果没有实际数据，使用模拟数据
-    if (trendingTokens.length === 0) {
-      const mockData = generateMockData();
-      trendingTokens = mockData.trending;
-      newListings = mockData.newListings;
-      highVolume = mockData.highVolume;
-    }
-
-    // 返回成功响应
-    return NextResponse.json({
+    
+    // 格式化代币数据
+    const formattedTokens = tokens.map(token => {
+      // 解析appendix中的额外信息
+      let appendixData: Record<string, any> = {};
+      if (token.appendix) {
+        try {
+          appendixData = JSON.parse(token.appendix);
+        } catch (e) {
+          console.error('Error parsing appendix data:', e);
+        }
+      }
+      
+      return {
+        token: token.token || "",
+        chain: token.chain || "",
+        symbol: token.symbol || "",
+        name: token.name || (appendixData.tokenName as string) || token.symbol || "Unknown Token",
+        logo_url: token.logo_url || "",
+        price: token.current_price_usd || 0,
+        priceChange24h: token.price_change_24h || 0,
+        volume24h: token.tx_volume_u_24h || 0,
+        marketCap: token.market_cap || "0",
+        holders: token.holders || 0,
+        riskScore: token.risk_score || 0
+      };
+    });
+    
+    // 准备返回数据
+    const result = {
       success: true,
-      data: {
-        trending: trendingTokens,
-        newListings: newListings,
-        highVolume: highVolume,
-        lastUpdated: new Date().toISOString()
-      }
-    })
+      tokens: formattedTokens,
+      count: formattedTokens.length,
+      chain: chain || 'all',
+      timestamp: new Date().toISOString()
+    };
+    
+    // 缓存结果
+    cacheService.set(cacheKey, result, { ttl: CACHE_TTL.SHORT }); // 热门数据变化快，使用较短的缓存时间
+    
+    return NextResponse.json(result);
+    
   } catch (error) {
-    console.error('API Error:', error)
-    
-    // 返回模拟数据以避免 UI 崩溃
-    const mockData = generateMockData();
+    console.error('Error fetching trending tokens:', error);
     
     return NextResponse.json({
-      success: true,
-      data: mockData
-    })
+      success: false,
+      error: "Failed to fetch trending tokens",
+      message: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
   }
 }
