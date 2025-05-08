@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { getTokenDetails, searchTokens, formatTokenId, aveGetTokenDetails } from "@/app/lib/ave-api-service"
+import { getTokenDetails, searchTokens } from "@/app/lib/ave-api-service"
 import BottomNav from "@/app/components/BottomNav"
 import ChartWrapper from "@/app/components/ChartWrapper"
 import TokenHeader from "@/app/components/TokenHeader"
@@ -146,32 +146,11 @@ export default function KlinePage() {
     
     async function fetchToken() {
       try {
-        // 首先尝试使用更详细的Ave API直接获取
-        const tokenId = formatTokenId(address, blockchain);
-        const aveInfo = await aveGetTokenDetails({ token_id: tokenId });
-        
-        if (aveInfo) {
-          console.log("Advanced token info loaded:", aveInfo);
-          setTokenInfo({
-            symbol: aveInfo.symbol || "未知代币",
-            name: aveInfo.name || address.slice(0, 8) + "..." + address.slice(-6),
-            price: aveInfo.current_price_usd || 0,
-            priceChange24h: aveInfo.price_change_24h || 0,
-            volume24h: aveInfo.tx_volume_u_24h || 0,
-            marketCap: aveInfo.market_cap || 0,
-            holders: aveInfo.holders || 0,
-            lpAmount: aveInfo.lock_amount || 0,
-            logo_url: aveInfo.logo_url || ""
-          });
-          return;
-        }
-        
-        // 如果高级API失败，回退到基本API
         const info = await getTokenDetails(address, blockchain);
         if (info) {
-          console.log("Basic token info loaded:", info);
+          console.log("Token info loaded:", info);
           setTokenInfo(info?.tokenInfo || {});
-        } else {
+    } else {
           console.warn("No token info returned");
           setTokenInfo({
             symbol: "未知代币",
@@ -179,7 +158,7 @@ export default function KlinePage() {
             price: 0,
             priceChange24h: 0
           });
-        }
+  }
       } catch (err) {
         console.error("加载代币信息失败:", err);
         setTokenInfo({
@@ -188,8 +167,8 @@ export default function KlinePage() {
           price: 0,
           priceChange24h: 0
         });
-      }
     }
+  }
 
     fetchToken();
   }, [address, blockchain]);
@@ -221,10 +200,10 @@ export default function KlinePage() {
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-white font-bold">
                   {tokenInfo.symbol ? tokenInfo.symbol.slice(0, 2) : '?'}
-                </div>
-              )}
             </div>
-            
+              )}
+          </div>
+          
             {/* 搜索框 */}
             <div className="flex-1 relative">
               <Input
@@ -240,72 +219,72 @@ export default function KlinePage() {
               {isSearching && (
                 <div className="absolute right-3 top-2 w-5 h-5">
                   <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                </div>
+          </div>
               )}
             
               {/* 搜索结果下拉框 */}
-              {showResults && (
-                <div 
-                  ref={searchResultsRef} 
+            {showResults && (
+              <div 
+                ref={searchResultsRef} 
                   className="absolute left-0 right-0 mt-1 max-h-96 overflow-y-auto rounded-md shadow-lg z-50 bg-[#232b3b] border border-gray-700"
-                >
-                  {isSearching ? (
-                    <div className="p-3 text-center text-sm">
-                      <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full inline-block mr-2"></div>
-                      搜索中...
-                    </div>
-                  ) : searchResults.length > 0 ? (
-                    searchResults.map((token, index) => (
-                      <div
-                        key={index}
+              >
+                {isSearching ? (
+                  <div className="p-3 text-center text-sm">
+                    <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full inline-block mr-2"></div>
+                    搜索中...
+            </div>
+                ) : searchResults.length > 0 ? (
+                  searchResults.map((token, index) => (
+                    <div
+                      key={index}
                         className="p-3 flex items-center gap-3 text-sm cursor-pointer hover:bg-[#151d28] border-b border-gray-700"
-                        onClick={() => handleTokenSelect(token)}
-                      >
-                        <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-800 flex-shrink-0">
-                          {token.logo_url ? (
+                      onClick={() => handleTokenSelect(token)}
+                    >
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-800 flex-shrink-0">
+                        {token.logo_url ? (
                             <OptimizedImage
-                              src={token.logo_url}
-                              alt={token.symbol}
-                              fill
-                              className="object-cover"
+                            src={token.logo_url}
+                            alt={token.symbol}
+                            fill
+                            className="object-cover"
                               debug={true}
                               useStaticFallback={true}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-blue-900 flex items-center justify-center text-xs">
-                              {token.symbol?.charAt(0) || '?'}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-grow">
-                          <div className="font-medium">{token.symbol}</div>
-                          <div className="text-xs text-gray-400">{token.name} • {token.chain.toUpperCase()}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs">
-                            ${typeof token.current_price_usd === 'string' 
-                              ? parseFloat(token.current_price_usd).toFixed(6) 
-                              : (token.current_price_usd || 0).toFixed(6)}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-blue-900 flex items-center justify-center text-xs">
+                            {token.symbol?.charAt(0) || '?'}
                           </div>
-                          {token.price_change_24h && (
-                            <div className={`text-xs ${parseFloat(String(token.price_change_24h)) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              {parseFloat(String(token.price_change_24h)) >= 0 ? '+' : ''}
-                              {parseFloat(String(token.price_change_24h)).toFixed(2)}%
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    ))
-                  ) : searchValue.trim() ? (
-                    <div className="p-3 text-center text-sm text-gray-400">
-                      未找到相关代币
+                      <div className="flex-grow">
+                        <div className="font-medium">{token.symbol}</div>
+                        <div className="text-xs text-gray-400">{token.name} • {token.chain.toUpperCase()}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs">
+                          ${typeof token.current_price_usd === 'string' 
+                            ? parseFloat(token.current_price_usd).toFixed(6) 
+                            : (token.current_price_usd || 0).toFixed(6)}
+                        </div>
+                        {token.price_change_24h && (
+                          <div className={`text-xs ${parseFloat(String(token.price_change_24h)) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {parseFloat(String(token.price_change_24h)) >= 0 ? '+' : ''}
+                            {parseFloat(String(token.price_change_24h)).toFixed(2)}%
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  ) : null}
-                </div>
-              )}
+                  ))
+                ) : searchValue.trim() ? (
+                    <div className="p-3 text-center text-sm text-gray-400">
+                    未找到相关代币
+                  </div>
+                ) : null}
+              </div>
+            )}
             </div>
           </div>
-        </div>
+            </div>
         
         {/* 顶部信息栏 */}
         <TokenHeader tokenInfo={tokenInfo} />
@@ -328,7 +307,7 @@ export default function KlinePage() {
         </div>
       </div>
       
-      {/* 底部导航 */}
+        {/* 底部导航 */}
       <BottomNav darkMode={darkMode} />
       <Toaster />
     </div>

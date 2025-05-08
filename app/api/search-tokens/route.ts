@@ -131,3 +131,4 @@ export async function GET(request: Request) {
     
     return NextResponse.json(formattedError, { status: 500 });
   }
+}

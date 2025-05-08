@@ -22,46 +22,6 @@ export default function TokenHeader({ tokenInfo }: { tokenInfo: TokenInfo }) {
   const placeholderImage = "/placeholder-token.png";
   // Make sure we never pass undefined to Image component
   const logoUrl = hasValidLogo && tokenInfo.logo_url ? tokenInfo.logo_url : placeholderImage;
-  
-  // 格式化数字
-  const formatNumber = (num: number | string | undefined): string => {
-    if (num === undefined) return "0";
-    
-    const numValue = typeof num === 'string' ? parseFloat(num) : num;
-    
-    if (isNaN(numValue)) return "0";
-    
-    if (numValue >= 1000000000) {
-      return `$${(numValue / 1000000000).toFixed(2)}B`;
-    } else if (numValue >= 1000000) {
-      return `$${(numValue / 1000000).toFixed(2)}M`;
-    } else if (numValue >= 1000) {
-      return `$${(numValue / 1000).toFixed(2)}K`;
-    } else {
-      return `$${numValue.toFixed(2)}`;
-    }
-  };
-  
-  // 格式化价格
-  const formatPrice = (price: number | string | undefined): string => {
-    if (price === undefined) return "$0";
-    
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    
-    if (isNaN(numPrice)) return "$0";
-    
-    if (numPrice < 0.000001) {
-      return `$${numPrice.toExponential(4)}`;
-    } else if (numPrice < 0.001) {
-      return `$${numPrice.toFixed(6)}`;
-    } else if (numPrice < 1) {
-      return `$${numPrice.toFixed(4)}`;
-    } else if (numPrice < 10000) {
-      return `$${numPrice.toFixed(2)}`;
-    } else {
-      return formatNumber(numPrice);
-    }
-  };
 
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between p-4 bg-[#181f2a] rounded-b-xl shadow mb-2">
@@ -83,15 +43,15 @@ export default function TokenHeader({ tokenInfo }: { tokenInfo: TokenInfo }) {
       </div>
       <div className="flex flex-wrap gap-4 mt-2 md:mt-0">
         <div>
-          <div className="text-2xl font-bold">{formatPrice(tokenInfo.price)}</div>
+          <div className="text-2xl font-bold">${tokenInfo.price || "0"}</div>
           <div className={`text-sm ${tokenInfo.priceChange24h && tokenInfo.priceChange24h > 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {tokenInfo.priceChange24h && tokenInfo.priceChange24h > 0 ? '+' : ''}{tokenInfo.priceChange24h ? `${tokenInfo.priceChange24h.toFixed(2)}%` : '0%'}
+            {tokenInfo.priceChange24h && tokenInfo.priceChange24h > 0 ? '+' : ''}{tokenInfo.priceChange24h || 0}%
           </div>
         </div>
-        <div className="text-xs text-gray-400">24H额: {formatNumber(tokenInfo.volume24h)}</div>
-        <div className="text-xs text-gray-400">流通市值: {formatNumber(tokenInfo.marketCap)}</div>
-        <div className="text-xs text-gray-400">池子: {formatNumber(tokenInfo.lpAmount)}</div>
-        <div className="text-xs text-gray-400">持有人: {typeof tokenInfo.holders === 'number' ? tokenInfo.holders.toLocaleString() : tokenInfo.holders || '0'}</div>
+        <div className="text-xs text-gray-400">24H额: {tokenInfo.volume24h || 0}</div>
+        <div className="text-xs text-gray-400">流通市值: {tokenInfo.marketCap || 0}</div>
+        <div className="text-xs text-gray-400">池子: {tokenInfo.lpAmount || 0}</div>
+        <div className="text-xs text-gray-400">持有人: {tokenInfo.holders || 0}</div>
       </div>
     </div>
   );

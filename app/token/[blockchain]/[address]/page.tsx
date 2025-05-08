@@ -12,7 +12,7 @@ import ChartWrapper from "@/app/components/ChartWrapper"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import BottomNav from "@/app/components/BottomNav"
 import Image from "next/image"
-import { getTokenDetails, formatTokenId, aveGetTokenDetails } from "@/app/lib/ave-api-service"
+import { getTokenDetails } from "@/app/lib/ave-api-service"
 
 export default function TokenDetailPage() {
   const params = useParams()
@@ -121,74 +121,56 @@ export default function TokenDetailPage() {
     setTokenLogo("/placeholder-token.png");
   }
 
-  // Fetch token details
   useEffect(() => {
-    const fetchTokenDetails = async () => {
-      setIsLoading(true)
+    // Fetch token data from Ave API
+    setIsLoading(true);
+
+    const fetchTokenData = async () => {
       try {
-        // 首先尝试使用更详细的Ave API
-        const tokenId = formatTokenId(address, blockchain)
-        const aveInfo = await aveGetTokenDetails({ token_id: tokenId })
+        const tokenDetails = await getTokenDetails(address, blockchain);
         
-        if (aveInfo) {
-          console.log("Advanced token info loaded:", aveInfo)
-          setTokenInfo({
-            name: aveInfo.name || "Unknown Token",
-            symbol: aveInfo.symbol || "???",
-            price: typeof aveInfo.current_price_usd === 'number' 
-              ? `$${aveInfo.current_price_usd.toFixed(6)}` 
-              : `$${parseFloat(String(aveInfo.current_price_usd || 0)).toFixed(6)}`,
-            change24h: aveInfo.price_change_24h ? `${aveInfo.price_change_24h > 0 ? '+' : ''}${aveInfo.price_change_24h.toFixed(2)}%` : "0.00%",
-            volume24h: formatNumber(Number(aveInfo.tx_volume_u_24h || 0)),
-            liquidity: formatNumber(Number(aveInfo.lock_amount || 0)),
-            marketCap: formatNumber(Number(aveInfo.market_cap || 0)),
-            logo: aveInfo.logo_url
-          })
-          
-          if (aveInfo.logo_url) {
-            setTokenLogo(aveInfo.logo_url)
+        if (tokenDetails) {
+          // Update token logo
+          if (tokenDetails.tokenInfo.logo_url) {
+            setTokenLogo(tokenDetails.tokenInfo.logo_url);
           }
           
-          setIsLoading(false)
-          return
-        }
-        
-        // 回退到基本API
-        const result = await getTokenDetails(address, blockchain)
-        
-        if (result) {
-          const { tokenInfo } = result
-          console.log("Basic token info loaded:", tokenInfo)
-          
-          setTokenInfo({
-            name: tokenInfo.name || "Unknown Token",
-            symbol: tokenInfo.symbol || "???",
-            price: `$${(tokenInfo.price || 0).toFixed(6)}`,
-            change24h: `${tokenInfo.priceChange24h && tokenInfo.priceChange24h > 0 ? '+' : ''}${(tokenInfo.priceChange24h || 0).toFixed(2)}%`,
-            volume24h: formatNumber(tokenInfo.volume24h || 0),
-            liquidity: formatNumber(result.lpAmount || 0),
-            marketCap: formatNumber(tokenInfo.marketCap || 0),
-            logo: tokenInfo.logo_url
-          })
-          
-          if (tokenInfo.logo_url) {
-            setTokenLogo(tokenInfo.logo_url)
-          }
+          // Update token information
+        setTokenInfo({
+            name: tokenDetails.tokenInfo.name || "Unknown Token",
+            symbol: tokenDetails.tokenInfo.symbol || "???",
+            price: `$${tokenDetails.price.toFixed(6)}`,
+            change24h: tokenDetails.priceChange >= 0 
+              ? `+${tokenDetails.priceChange.toFixed(2)}%` 
+              : `${tokenDetails.priceChange.toFixed(2)}%`,
+            volume24h: formatNumber(tokenDetails.volume24h),
+            liquidity: formatNumber(tokenDetails.lpAmount),
+            marketCap: formatNumber(tokenDetails.marketCap),
+            logo: tokenDetails.tokenInfo.logo_url,
+          });
+        } else {
+          // Handle case when token is not found
+          toast({
+            variant: "destructive",
+            title: "未找到代币",
+            description: "无法获取该代币的信息，请检查合约地址是否正确。",
+          });
         }
       } catch (error) {
-        console.error("Failed to fetch token details:", error)
+        console.error("获取代币数据错误:", error);
         toast({
-          title: "Error loading token",
-          description: "Could not load token details. Please try again later.",
           variant: "destructive",
-        })
+          title: "加载错误",
+          description: "获取代币信息失败，请稍后重试。",
+          action: <ToastAction altText="重试">重试</ToastAction>,
+        });
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-    
-    fetchTokenDetails()
-  }, [address, blockchain, toast])
+    };
+
+    fetchTokenData();
+  }, [blockchain, address]);
 
   return (
     <div className={`min-h-screen ${darkMode ? "bg-black text-white" : "bg-white text-black"}`}>
