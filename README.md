@@ -9,8 +9,8 @@
 - 📈 实时K线图和市场分析
 - 👤 用户个人资料管理
 - 🔍 Web3应用发现和热门排名
-- 📱 响应式设计，适合移动端使用
-- 🔄 Python API后端，提供实时代币数据
+- �� 响应式设计，适合移动端使用
+- 🔄 Next.js API Routes提供实时代币数据
 
 ## 主要页面
 
@@ -23,11 +23,11 @@
 ## 技术栈
 
 - Next.js 15
-- React
+- React 19
 - TypeScript
 - Tailwind CSS
 - shadcn/ui组件库
-- Python Flask API服务
+- Next.js API Routes
 - Vercel部署
 
 ## 安装和运行
@@ -35,80 +35,47 @@
 1. 克隆项目仓库：
 
 ```bash
-git clone https://github.com/你的用户名/xai6.git
-cd xai6
+git clone https://github.com/你的用户名/xai2.git
+cd xai2
 ```
 
 2. 安装依赖：
 
 ```bash
 npm install
+# 或
+pnpm install
 ```
-
-### 只运行前端
 
 3. 运行开发服务器：
 
 ```bash
 npm run dev
+# 或
+pnpm dev
 ```
 
 4. 打开浏览器访问：http://localhost:3000
-
-### 运行前端和Python API后端
-
-3. 安装Python依赖：
-
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-
-# Linux/macOS
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-4. 启动开发环境（使用脚本启动两个服务器）：
-
-```bash
-# Windows
-start.bat
-
-# Linux/macOS
-chmod +x start.sh
-./start.sh
-```
-
-5. 打开浏览器访问：http://localhost:3000
-
-### Python API后端
-
-Python Flask服务提供以下API端点：
-
-- `/api/token-boosts` - 获取热门代币数据
-- `/health` - 健康检查接口
-
-详细信息请查看 [API_README.md](API_README.md)
 
 ## 构建生产版本
 
 ```bash
 npm run build
 npm start
+# 或
+pnpm build
+pnpm start
 ```
 
 ## 部署
 
-该项目可以部署到Vercel或其他支持Next.js的平台。Python API后端可以部署到支持Python的平台，如Heroku、AWS Lambda等。
+该项目可以部署到Vercel或其他支持Next.js的平台。
 
 ## Vercel部署
 
 本项目可以轻松部署到Vercel平台。
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F你的用户名%2Fxai6)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F你的用户名%2Fxai2)
 
 ### 部署步骤
 
@@ -120,8 +87,9 @@ npm start
    - 输出目录: `.next`
    - 安装命令: `pnpm install`
 5. 设置环境变量
-   - `NEXT_PUBLIC_API_BASE_URL`: API基础URL（默认为空）
    - `NEXT_PUBLIC_APP_URL`: 应用URL
+   - `AVE_API_KEY`: Ave.ai API密钥
+   - 其他环境变量请参考`.env.example`
 6. 点击部署
 
 ## 环境变量
@@ -129,13 +97,72 @@ npm start
 创建一个`.env.local`文件，并设置以下环境变量：
 
 ```
-NEXT_PUBLIC_API_BASE_URL=""
 NEXT_PUBLIC_APP_URL="https://你的域名.vercel.app"
+AVE_API_KEY="your_api_key_here"
+# 更多环境变量请参考.env.example
 ```
 
 ## API接口
 
-项目使用Ave.ai API获取代币数据。API密钥已包含在代码中。
+项目使用内置的Next.js API Routes获取代币数据。详细API文档请查看 [API_README.md](API_README.md)。
+
+## API 标准化
+
+作为优化计划的一部分，我们已经实现了API标准化，提供了一致的响应格式和错误处理：
+
+### 标准响应格式
+
+所有API端点都返回统一的响应格式：
+
+```typescript
+interface ApiResponse<T> {
+  success: boolean;    // 请求是否成功
+  data?: T;            // 响应数据（成功时）
+  error?: string;      // 错误类型（失败时）
+  message?: string;    // 错误信息（失败时）
+  timestamp: number;   // 响应时间戳
+}
+```
+
+### API安全性增强
+
+- 实现了请求频率限制，防止API滥用
+- 添加了CORS头支持，增强跨域安全
+- 添加了API密钥验证，保护敏感端点
+
+### 主要API端点
+
+所有API端点已经迁移到`/api/v1/`路径下，详细文档可以在[API v1文档](app/api/v1/README.md)中找到。
+
+### 缓存优化
+
+- 实现了双层缓存（内存 + 文件）
+- 添加了智能缓存失效策略
+- 提供了缓存状态监控和管理
+
+## 即将进行的工作
+
+以下是后续计划中的工作：
+
+1. **性能优化**
+   - 实现虚拟列表，优化长列表渲染
+   - 优化图片加载和处理
+   - 优化JavaScript性能
+
+2. **用户体验提升**
+   - 添加骨架屏和占位符
+   - 优化加载状态和错误提示
+   - 添加过渡动画和微交互
+
+3. **国际化支持**
+   - 提取所有硬编码文本
+   - 添加多语言支持
+   - 支持RTL布局
+
+4. **测试框架**
+   - 添加单元测试和集成测试
+   - 实现自动化测试流程
+   - 确保代码质量和稳定性
 
 ## 贡献指南
 

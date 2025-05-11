@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowLeft, Search, ExternalLink, TrendingUp, Zap, Info, Star, Download } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Search, TrendingUp, Zap, Download, ExternalLink, ChevronUp } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import Link from "next/link"
 import Image from "next/image"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import BottomNav from "../components/BottomNav"
 import EthereumProtection from "../components/EthereumProtection"
+import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
 
 // Web3 应用数据
 const web3Apps = {
@@ -394,6 +394,16 @@ const getTopApps = (count = 30) => {
   return allApps.sort((a, b) => b.heat - a.heat).slice(0, count);
 };
 
+// 分类对应的颜色和图标
+const categoryStyles = {
+  hot: { bgColor: "bg-gradient-to-r from-pink-500/20 to-rose-500/20", textColor: "text-rose-500", borderColor: "border-rose-500/30" },
+  dex: { bgColor: "bg-gradient-to-r from-blue-500/20 to-indigo-500/20", textColor: "text-blue-500", borderColor: "border-blue-500/30" },
+  lending: { bgColor: "bg-gradient-to-r from-purple-500/20 to-violet-500/20", textColor: "text-purple-500", borderColor: "border-purple-500/30" },
+  nft: { bgColor: "bg-gradient-to-r from-amber-500/20 to-orange-500/20", textColor: "text-amber-500", borderColor: "border-amber-500/30" },
+  gaming: { bgColor: "bg-gradient-to-r from-green-500/20 to-emerald-500/20", textColor: "text-green-500", borderColor: "border-green-500/30" },
+  infra: { bgColor: "bg-gradient-to-r from-cyan-500/20 to-teal-500/20", textColor: "text-cyan-500", borderColor: "border-cyan-500/30" }
+};
+
 interface ChainBadgeProps {
   chain: string
 }
@@ -428,8 +438,12 @@ function ChainBadge({ chain }: ChainBadgeProps) {
 
   return (
     <span 
-      className="inline-flex items-center px-2 py-1 text-xs rounded-full"
-      style={{ backgroundColor: `${chainColors[chain]}40`, color: chainColors[chain] }}
+      className="inline-flex items-center px-2 py-0.5 text-xs rounded-full"
+      style={{ 
+        backgroundColor: `${chainColors[chain]}20`, 
+        color: chainColors[chain],
+        border: `1px solid ${chainColors[chain]}30`
+      }}
     >
       {chainName[chain]}
     </span>
@@ -437,7 +451,9 @@ function ChainBadge({ chain }: ChainBadgeProps) {
 }
 
 export default function DiscoverPage() {
-  const [darkMode, setDarkMode] = useState(true)
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+  
   const [category, setCategory] = useState("hot")
   const [searchQuery, setSearchQuery] = useState("")
   const topApps = getTopApps(30);
@@ -463,137 +479,190 @@ export default function DiscoverPage() {
   }
 
   const filteredApps = getFilteredApps();
+  const currentCategoryStyle = categoryStyles[category as keyof typeof categoryStyles];
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-[#0b101a] text-white" : "bg-gray-50 text-gray-900"} pb-16`}>
+    <div className={cn(
+      "min-h-screen pb-16",
+      isDark ? "bg-[#0b101a] text-white" : "bg-gray-50 text-gray-900"
+    )}>
       <EthereumProtection />
-      <div className="max-w-md mx-auto pb-20">
-        {/* 头部 */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-lg font-bold">发现</h1>
-              <p className="text-xs text-gray-400">探索Web3应用生态</p>
-            </div>
+      
+      {/* Banner */}
+      <div className="relative w-full h-32 overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <h1 className="text-2xl font-bold text-white">发现应用</h1>
+        </div>
+      </div>
+      
+      <div className="max-w-md mx-auto pb-20 px-3">
+        {/* 分类选项卡 - 水平滚动 */}
+        <div className="mt-4 mb-3">
+          <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button
+              onClick={() => setCategory("hot")}
+              className={cn(
+                "flex items-center space-x-1 py-1.5 px-4 rounded-full whitespace-nowrap text-sm",
+                category === "hot" 
+                  ? "bg-rose-500 text-white font-medium" 
+                  : isDark 
+                    ? "bg-gray-800/80 text-gray-300" 
+                    : "bg-white text-gray-700 border border-gray-200"
+              )}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>热门</span>
+            </button>
+            
+            <button
+              onClick={() => setCategory("dex")}
+              className={cn(
+                "py-1.5 px-4 rounded-full whitespace-nowrap text-sm",
+                category === "dex" 
+                  ? "bg-blue-500 text-white font-medium" 
+                  : isDark 
+                    ? "bg-gray-800/80 text-gray-300" 
+                    : "bg-white text-gray-700 border border-gray-200"
+              )}
+            >
+              交易所
+            </button>
+            
+            <button
+              onClick={() => setCategory("lending")}
+              className={cn(
+                "py-1.5 px-4 rounded-full whitespace-nowrap text-sm",
+                category === "lending" 
+                  ? "bg-purple-500 text-white font-medium" 
+                  : isDark 
+                    ? "bg-gray-800/80 text-gray-300" 
+                    : "bg-white text-gray-700 border border-gray-200"
+              )}
+            >
+              借贷
+            </button>
+            
+            <button
+              onClick={() => setCategory("nft")}
+              className={cn(
+                "py-1.5 px-4 rounded-full whitespace-nowrap text-sm",
+                category === "nft" 
+                  ? "bg-amber-500 text-white font-medium" 
+                  : isDark 
+                    ? "bg-gray-800/80 text-gray-300" 
+                    : "bg-white text-gray-700 border border-gray-200"
+              )}
+            >
+              NFT
+            </button>
+            
+            <button
+              onClick={() => setCategory("gaming")}
+              className={cn(
+                "py-1.5 px-4 rounded-full whitespace-nowrap text-sm",
+                category === "gaming" 
+                  ? "bg-green-500 text-white font-medium" 
+                  : isDark 
+                    ? "bg-gray-800/80 text-gray-300" 
+                    : "bg-white text-gray-700 border border-gray-200"
+              )}
+            >
+              游戏
+            </button>
+            
+            <button
+              onClick={() => setCategory("infra")}
+              className={cn(
+                "py-1.5 px-4 rounded-full whitespace-nowrap text-sm",
+                category === "infra" 
+                  ? "bg-cyan-500 text-white font-medium" 
+                  : isDark 
+                    ? "bg-gray-800/80 text-gray-300" 
+                    : "bg-white text-gray-700 border border-gray-200"
+              )}
+            >
+              基础设施
+            </button>
           </div>
         </div>
-
+        
         {/* 搜索框 */}
-        <div className="p-3">
+        <div className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               type="text"
               placeholder="搜索Web3应用..."
-              className={`pl-10 ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}
+              className={cn(
+                "pl-10 pr-4 py-2 rounded-full shadow-sm",
+                "transition-all duration-200 border-opacity-80",
+                "focus:ring-2 focus:ring-primary/30 focus:border-primary/60",
+                isDark 
+                  ? "bg-gray-800/90 border-gray-700/80 text-white" 
+                  : "bg-white border-gray-200 text-gray-900"
+              )}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
 
-        {/* 分类选项卡 */}
-        <Tabs value={category} onValueChange={setCategory} className="w-full px-3">
-          <TabsList className={`w-full ${darkMode ? "bg-gray-900" : "bg-gray-100"}`}>
-            <TabsTrigger value="hot" className="flex items-center gap-1 text-xs">
-              <TrendingUp className="w-3 h-3" /> 热门
-            </TabsTrigger>
-            <TabsTrigger value="dex" className="text-xs">交易所</TabsTrigger>
-            <TabsTrigger value="lending" className="text-xs">借贷</TabsTrigger>
-            <TabsTrigger value="nft" className="text-xs">NFT</TabsTrigger>
-            <TabsTrigger value="gaming" className="text-xs">游戏</TabsTrigger>
-            <TabsTrigger value="infra" className="text-xs">基础设施</TabsTrigger>
-          </TabsList>
-
-          {/* 热门应用内容 */}
-          <TabsContent value="hot" className="mt-3">
-            <div className="grid grid-cols-2 gap-2">
-              {filteredApps.map((app) => (
-                <div 
-                  key={app.id}
-                  className={`p-3 rounded-lg ${darkMode ? "bg-gray-900" : "bg-gray-50"} border ${darkMode ? "border-gray-800" : "border-gray-200"} cursor-pointer transition-all hover:shadow-lg`}
-                  onClick={() => handleAppClick(app.url)}
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="relative flex-shrink-0 w-8 h-8 rounded-full overflow-hidden" style={{ backgroundColor: `${app.color}30` }}>
-                      <div className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color: app.color }}>
-                        {app.name.charAt(0)}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm truncate">{app.name}</h3>
-                      <div className="flex items-center text-xs text-gray-400">
-                        <Zap className="w-3 h-3 mr-0.5" />
-                        <span>{app.heat}</span>
-                        <Download className="w-3 h-3 ml-2 mr-0.5" />
-                        <span>{app.downloads}</span>
-                      </div>
-                    </div>
+        {/* 应用列表 */}
+        <div className="space-y-2.5">
+          {filteredApps.map((app) => (
+            <div 
+              key={app.id}
+              className={cn(
+                "flex items-center p-3 rounded-xl cursor-pointer transition-all",
+                "shadow-sm hover:shadow border",
+                isDark 
+                  ? "bg-gray-800/70 border-gray-700/60 hover:bg-gray-800" 
+                  : "bg-white border-gray-200/80 hover:border-gray-300"
+              )}
+              onClick={() => handleAppClick(app.url)}
+            >
+              <div className="relative flex-shrink-0 w-12 h-12 rounded-full overflow-hidden shadow-sm mr-3" style={{ backgroundColor: `${app.color}20` }}>
+                <div className="absolute inset-0 flex items-center justify-center text-lg font-bold" style={{ color: app.color }}>
+                  {app.name.charAt(0)}
+                </div>
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-semibold truncate">{app.name}</h3>
+                  <div className={cn(
+                    "text-xs px-1.5 py-0.5 rounded-md flex items-center",
+                    currentCategoryStyle.textColor,
+                    currentCategoryStyle.bgColor
+                  )}>
+                    <Zap className="w-3 h-3 mr-0.5" />
+                    <span>{app.heat}</span>
                   </div>
-                  <p className="text-xs text-gray-400 truncate mb-1">{app.description}</p>
+                </div>
+                
+                <p className="text-xs text-gray-400 truncate mt-0.5">{app.description}</p>
+                
+                <div className="flex items-center justify-between mt-2">
                   <div className="flex flex-wrap gap-1">
-                    {app.chain.slice(0, 2).map((c) => (
+                    {app.chain.slice(0, 3).map((c) => (
                       <ChainBadge key={c} chain={c} />
                     ))}
-                    {app.chain.length > 2 && (
+                    {app.chain.length > 3 && (
                       <span className="inline-flex items-center px-1.5 text-xs text-gray-400">
-                        +{app.chain.length - 2}
+                        +{app.chain.length - 3}
                       </span>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* 类别内容 */}
-          {Object.keys(web3Apps).map((cat) => (
-            <TabsContent key={cat} value={cat} className="mt-3">
-              <div className="grid grid-cols-2 gap-2">
-                {filteredApps.map((app) => (
-                  <div 
-                    key={app.id}
-                    className={`p-3 rounded-lg ${darkMode ? "bg-gray-900" : "bg-gray-50"} border ${darkMode ? "border-gray-800" : "border-gray-200"} cursor-pointer transition-all hover:shadow-lg`}
-                    onClick={() => handleAppClick(app.url)}
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className="relative flex-shrink-0 w-8 h-8 rounded-full overflow-hidden" style={{ backgroundColor: `${app.color}30` }}>
-                        <div className="absolute inset-0 flex items-center justify-center text-sm font-bold" style={{ color: app.color }}>
-                          {app.name.charAt(0)}
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm truncate">{app.name}</h3>
-                        <div className="flex items-center text-xs text-gray-400">
-                          <Zap className="w-3 h-3 mr-0.5" />
-                          <span>{app.heat}</span>
-                          <Download className="w-3 h-3 ml-2 mr-0.5" />
-                          <span>{app.downloads}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-400 truncate mb-1">{app.description}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {app.chain.slice(0, 2).map((c) => (
-                        <ChainBadge key={c} chain={c} />
-                      ))}
-                      {app.chain.length > 2 && (
-                        <span className="inline-flex items-center px-1.5 text-xs text-gray-400">
-                          +{app.chain.length - 2}
-                        </span>
-                      )}
-                    </div>
+                  
+                  <div className="text-xs text-gray-400 flex items-center">
+                    <Download className="w-3 h-3 mr-1" />
+                    {app.downloads}
                   </div>
-                ))}
+                </div>
               </div>
-            </TabsContent>
+            </div>
           ))}
-        </Tabs>
+        </div>
 
         {/* 无搜索结果 */}
         {filteredApps.length === 0 && (
@@ -604,7 +673,7 @@ export default function DiscoverPage() {
       </div>
       
       {/* 底部导航栏 */}
-      <BottomNav darkMode={darkMode} />
+      <BottomNav darkMode={isDark} />
     </div>
   )
 } 

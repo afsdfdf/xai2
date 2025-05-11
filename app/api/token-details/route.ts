@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-
-// Ave.ai API Key
-const AVE_API_KEY = "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA";
+import { AVE_API_KEY } from '../lib/constants';
 
 // 模拟数据，在API调用失败时使用
 const mockTokenData = {

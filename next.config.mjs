@@ -42,6 +42,11 @@ const nextConfig = {
         hostname: 'example.com',
         pathname: '**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '**',
+      },
     ],
   },
   experimental: {

@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-
-// Ave.ai API Key
-const AVE_API_KEY = "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA";
+import { AVE_API_KEY } from '../lib/constants';
 
 // 生成模拟K线数据的函数
 function generateMockKlineData(count: number = 100) {

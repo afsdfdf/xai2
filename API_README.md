@@ -1,99 +1,190 @@
-# Token Boosts API Server
+# XAI Finance API 文档
 
-This is a simple Python Flask server that serves as a backend for the XAI Finance application. It provides an API for fetching token data from DexScreener.
+这是 XAI Finance 应用的 API 后端，使用 Next.js API Routes 实现。提供了加密货币数据的获取、缓存和处理功能。
 
-## Features
+## API 端点
 
-- Fetches top token boosts from the DexScreener API
-- Implements caching to reduce API calls
-- Provides formatted token data with names, logos, prices, and contract addresses
-- Includes CORS support for cross-origin requests
-- Health check endpoint for monitoring
+### 1. 代币提升 (Token Boosts)
 
-## Installation
+**GET /api/v1/token-boosts**
 
-1. Make sure you have Python 3.8+ installed
-2. Install the required dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Running the Server
-
-### Development
-
-For development purposes, you can run the server using:
-
-```bash
-python api_server.py
-```
-
-This will start the server on port 5000 with debug mode enabled.
-
-### Production
-
-For production, it's recommended to use a WSGI server like Gunicorn:
-
-```bash
-gunicorn -w 4 -b 0.0.0.0:5000 api_server:app
-```
-
-## API Endpoints
-
-### GET /api/token-boosts
-
-Returns a list of trending tokens with their details.
-
-**Response Format:**
+返回热门代币列表，数据来源于 DexScreener。
 
 ```json
 {
-  "tokens": [
-    {
-      "name": "Token Name",
-      "symbol": "TKN",
-      "address": "0x1234567890abcdef...",
-      "logo": "https://example.com/logo.png",
-      "price": 1.23,
-      "chain": "ethereum"
-    },
-    ...
-  ],
-  "count": 10,
   "success": true,
-  "timestamp": 1624312345.67
+  "data": {
+    "tokens": [
+      {
+        "token": "0x1234...",
+        "chain": "ethereum",
+        "symbol": "TKN",
+        "name": "Token Name",
+        "logo_url": "https://example.com/logo.png",
+        "current_price_usd": 1.23,
+        "price_change_24h": 5.67,
+        "tx_volume_u_24h": 1000000,
+        "holders": 5000
+      }
+    ],
+    "count": 1
+  },
+  "timestamp": 1624312345678
 }
 ```
 
-### GET /health
+### 2. 首页数据 (Home Data)
 
-Health check endpoint.
+**GET /api/v1/home**
 
-**Response:**
+返回综合首页数据，包括热门、高价值和新代币。
+
+```json
+{
+  "success": true,
+  "data": {
+    "tokens": ["代币数据..."],
+    "count": 50,
+    "trending": ["趋势代币..."],
+    "popular": ["高价值代币..."],
+    "new": ["新代币..."]
+  },
+  "timestamp": 1624312345678
+}
+```
+
+### 3. 代币数据 (Tokens)
+
+**GET /api/tokens?topic=hot**
+
+根据主题返回代币列表。可用主题有：hot, new, meme 等。
+
+**GET /api/tokens?topic=topics**
+
+返回所有可用主题。
+
+```json
+{
+  "success": true,
+  "data": {
+    "topics": [
+      {
+        "id": "hot",
+        "name_en": "Hot",
+        "name_zh": "热门"
+      },
+      {
+        "id": "new",
+        "name_en": "New",
+        "name_zh": "新币"
+      }
+    ]
+  },
+  "timestamp": 1624312345678
+}
+```
+
+### 4. 代币详情 (Token Details)
+
+**GET /api/v1/token-details?tokenId=0x123-ethereum**
+
+返回指定代币的详细信息。tokenId 格式为 `{token}-{chain}`。
+
+```json
+{
+  "success": true,
+  "data": {
+    "token": {
+      "token": "0x123...",
+      "chain": "ethereum",
+      "symbol": "TKN",
+      "pairs": [
+        "交易对信息..."
+      ]
+    }
+  },
+  "timestamp": 1624312345678
+}
+```
+
+### 5. 搜索代币 (Search Tokens)
+
+**GET /api/v1/search-tokens?keyword=bitcoin&chain=ethereum**
+
+搜索代币，可选指定链。
+
+```json
+{
+  "success": true,
+  "data": {
+    "tokens": ["搜索结果..."],
+    "count": 10,
+    "keyword": "bitcoin"
+  },
+  "timestamp": 1624312345678
+}
+```
+
+### 6. 健康检查 (Health)
+
+**GET /api/v1/health**
+
+检查 API 服务健康状态。
 
 ```json
 {
   "status": "healthy",
-  "timestamp": 1624312345.67
+  "timestamp": 1624312345678,
+  "cache": {
+    "token_boosts": {
+      "valid": true,
+      "age": 120
+    }
+  },
+  "version": "1.0.0"
 }
 ```
 
-## Integration with Next.js Frontend
+### 7. 缓存管理
 
-To connect the frontend with this API:
+**GET /api/v1/cache/status**
 
-1. Run this server on port 5000
-2. Update the Next.js app's environment variables or proxy settings to point to this API
-3. Use the fetch API in your frontend components to retrieve data from this server
+返回所有缓存的状态。
 
-## Error Handling
+**POST /api/v1/cache/refresh?type=token_boosts**
 
-The API returns appropriate HTTP status codes and error messages:
+刷新指定类型的缓存。不提供 type 参数则刷新所有缓存。
 
-- 200: Successful response
-- 500: Server error (with error details in the response body)
+需要在请求头中提供授权：`Authorization: Bearer {CACHE_REFRESH_SECRET}`
 
-## Caching
+## 缓存机制
 
-The API implements a simple in-memory cache with a 5-minute expiration time to reduce the number of calls to the external DexScreener API. 
+API 使用内存缓存和文件缓存的双层缓存机制，减少对外部 API 的请求次数，提高响应速度。每种数据类型有不同的缓存过期时间，可通过环境变量配置。
+
+## 定时任务
+
+使用 `/api/v1/cron` 端点触发定时缓存刷新。可以通过 Vercel Cron Jobs 或外部 CRON 服务定期调用此端点来保持数据新鲜度。
+
+需要在请求头中提供 API 密钥：`x-api-key: {CRON_API_KEY}`
+
+## 环境变量
+
+```
+# API密钥
+AVE_API_KEY=your_ave_api_key_here
+
+# 缓存配置（单位：毫秒）
+CACHE_TTL_TOKEN_BOOSTS=900000      # 15分钟
+CACHE_TTL_HOME_DATA=1200000        # 20分钟
+CACHE_TTL_AVE_DATA=1800000         # 30分钟
+CACHE_TTL_TOKEN_DETAILS=3600000    # 1小时
+CACHE_TTL_TOKEN_KLINE=60000        # 1分钟
+CACHE_TTL_SEARCH_RESULTS=300000    # 5分钟
+CACHE_TTL_TOPICS=86400000          # 24小时
+CACHE_TTL_TOKENS=3600000           # 1小时
+
+# 定时任务API密钥
+CRON_API_KEY=your_cron_api_key_here
+
+# 缓存刷新密钥
+CACHE_REFRESH_SECRET=your_refresh_secret_here 

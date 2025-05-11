@@ -2,8 +2,13 @@ import { NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 
-// API key for Ave.ai - 应该从环境变量获取，避免在代码中硬编码
-const AVE_API_KEY = process.env.AVE_API_KEY || "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA";
+// 从环境变量获取API密钥
+const AVE_API_KEY = "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA";
+
+// 如果API密钥未设置，记录警告
+if (!AVE_API_KEY) {
+  console.warn('警告: AVE_API_KEY未设置，API请求可能会失败');
+}
 
 // 缓存文件路径
 const CACHE_DIR = join(process.cwd(), 'cache');
@@ -134,11 +139,17 @@ async function writeFileCache(cacheKey: string, data: any): Promise<void> {
 async function fetchAveApiData(endpoint: string) {
   console.log(`Fetching data from: ${endpoint}`);
   try {
+    // 构建请求头
+    const headers: HeadersInit = {
+      "Accept": "*/*",
+      "X-API-KEY": AVE_API_KEY
+    };
+    
+    // 调试日志
+    console.log("请求头:", headers);
+    
     const response = await fetch(endpoint, {
-      headers: {
-        "Accept": "*/*",
-        "X-API-KEY": AVE_API_KEY
-      },
+      headers,
       cache: 'no-store',
     });
     
@@ -149,7 +160,19 @@ async function fetchAveApiData(endpoint: string) {
     }
     
     const data = await response.json();
-    console.log("API response received:", JSON.stringify(data).substring(0, 100) + "...");
+    
+    // 调试日志 - 显示简化的API响应
+    console.log("API response status:", data?.status);
+    console.log("API response has data:", !!data?.data);
+    console.log("API response data type:", data?.data ? Array.isArray(data.data) ? "Array" : typeof data.data : "undefined");
+    
+    if (data?.data && Array.isArray(data.data)) {
+      console.log("API response data length:", data.data.length);
+      if (data.data.length > 0) {
+        console.log("First item sample:", JSON.stringify(data.data[0]).substring(0, 100) + "...");
+      }
+    }
+    
     return data;
   } catch (error) {
     console.error(`Error fetching from ${endpoint}:`, error);
@@ -209,7 +232,11 @@ export async function GET(request: Request) {
       // 检查内存缓存是否有效
       if (isMemoryCacheValid(cacheKey)) {
         console.log("Returning cached topics data from memory");
-        return NextResponse.json({ topics: memoryCache[cacheKey].data }, { status: 200 });
+        return NextResponse.json({ 
+          success: true, 
+          data: { topics: memoryCache[cacheKey].data }, 
+          timestamp: Date.now() 
+        }, { status: 200 });
       }
       
       // 检查文件缓存
@@ -221,7 +248,11 @@ export async function GET(request: Request) {
           data: fileCache,
           timestamp: Date.now()
         };
-        return NextResponse.json({ topics: fileCache }, { status: 200 });
+        return NextResponse.json({ 
+          success: true, 
+          data: { topics: fileCache }, 
+          timestamp: Date.now() 
+        }, { status: 200 });
       }
       
       console.log("Fetching fresh topics data from Ave.ai API");
@@ -245,7 +276,11 @@ export async function GET(request: Request) {
         await writeFileCache(cacheKey, data.data);
         
         console.log("Returning fresh topics data and updating cache");
-        return NextResponse.json({ topics: data.data }, { status: 200 });
+        return NextResponse.json({ 
+          success: true, 
+          data: { topics: data.data }, 
+          timestamp: Date.now() 
+        }, { status: 200 });
       } catch (apiError) {
         console.error("Error fetching from Ave.ai, using dummy data:", apiError);
         
@@ -255,7 +290,11 @@ export async function GET(request: Request) {
           timestamp: Date.now()
         };
         
-        return NextResponse.json({ topics: dummyTopics }, { status: 200 });
+        return NextResponse.json({ 
+          success: true, 
+          data: { topics: dummyTopics }, 
+          timestamp: Date.now() 
+        }, { status: 200 });
       }
     } 
     // 否则返回特定主题的代币列表
@@ -266,8 +305,13 @@ export async function GET(request: Request) {
       if (isMemoryCacheValid(cacheKey)) {
         console.log(`Returning cached tokens data for topic: ${topic} from memory`);
         return NextResponse.json({ 
-          topic: topic,
-          tokens: memoryCache[cacheKey].data 
+          success: true,
+          data: {
+            topic: topic,
+            tokens: memoryCache[cacheKey].data,
+            count: memoryCache[cacheKey].data.length
+          },
+          timestamp: Date.now()
         }, { status: 200 });
       }
       
@@ -281,8 +325,13 @@ export async function GET(request: Request) {
           timestamp: Date.now()
         };
         return NextResponse.json({ 
-          topic: topic,
-          tokens: fileCache 
+          success: true,
+          data: {
+            topic: topic,
+            tokens: fileCache,
+            count: fileCache.length
+          },
+          timestamp: Date.now()
         }, { status: 200 });
       }
       
@@ -312,8 +361,13 @@ export async function GET(request: Request) {
         
         console.log(`Returning fresh tokens data for topic: ${topic} and updating cache`);
         return NextResponse.json({ 
-          topic: topic,
-          tokens: transformedData 
+          success: true,
+          data: {
+            topic: topic,
+            tokens: transformedData,
+            count: transformedData.length
+          },
+          timestamp: Date.now()
         }, { status: 200 });
       } catch (apiError) {
         console.error(`Error fetching from Ave.ai for topic ${topic}, using dummy data:`, apiError);
@@ -325,8 +379,13 @@ export async function GET(request: Request) {
         };
         
         return NextResponse.json({ 
-          topic: topic,
-          tokens: dummyTokens 
+          success: true,
+          data: {
+            topic: topic,
+            tokens: dummyTokens,
+            count: dummyTokens.length
+          },
+          timestamp: Date.now()
         }, { status: 200 });
       }
     }
@@ -338,11 +397,20 @@ export async function GET(request: Request) {
     if (memoryCache[cacheKey]) {
       console.log(`API request failed, returning stale cache for ${cacheKey}`);
       if (topic === 'topics') {
-        return NextResponse.json({ topics: memoryCache[cacheKey].data }, { status: 200 });
+        return NextResponse.json({ 
+          success: true, 
+          data: { topics: memoryCache[cacheKey].data }, 
+          timestamp: Date.now() 
+        }, { status: 200 });
       } else {
         return NextResponse.json({ 
-          topic: topic,
-          tokens: memoryCache[cacheKey].data 
+          success: true,
+          data: {
+            topic: topic,
+            tokens: memoryCache[cacheKey].data,
+            count: memoryCache[cacheKey].data.length
+          },
+          timestamp: Date.now()
         }, { status: 200 });
       }
     }
@@ -350,11 +418,20 @@ export async function GET(request: Request) {
     // 如果连缓存都没有，返回测试数据
     console.log("No cache available, returning dummy data");
     if (topic === 'topics') {
-      return NextResponse.json({ topics: dummyTopics }, { status: 200 });
+      return NextResponse.json({ 
+        success: true, 
+        data: { topics: dummyTopics }, 
+        timestamp: Date.now() 
+      }, { status: 200 });
     } else {
       return NextResponse.json({ 
-        topic: topic,
-        tokens: dummyTokens 
+        success: true,
+        data: {
+          topic: topic,
+          tokens: dummyTokens,
+          count: dummyTokens.length
+        },
+        timestamp: Date.now()
       }, { status: 200 });
     }
   }

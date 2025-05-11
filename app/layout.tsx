@@ -24,7 +24,7 @@ export default function RootLayout({
         <EthereumProtectionScript />
       </head>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <EthereumProtection />
           <ClientErrorBoundary>
           {children}

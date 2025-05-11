@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { Search, Moon } from "lucide-react"
+import { Search, Moon, Sun } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,10 +16,14 @@ import BottomNav from './components/BottomNav'
 import TokenRankings from './components/token-rankings'
 import { searchTokens } from "@/app/lib/ave-api-service"
 import EthereumProtection from './components/EthereumProtection'
+import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
 
 export default function CryptoTracker() {
   const router = useRouter()
-  const [darkMode, setDarkMode] = useState(true)
+  const { resolvedTheme, setTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
+  
   const [searchValue, setSearchValue] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -27,17 +31,18 @@ export default function CryptoTracker() {
   const searchResultsRef = useRef<HTMLDivElement>(null)
   const [showSplash, setShowSplash] = useState(false)
 
-  // 初始化时检查是否显示开屏
+  // 初始化时总是显示开屏
   useEffect(() => {
-    // 仅在首次访问或页面刷新时显示开屏
-    // 检查是否已经在这个会话中看过开屏
-    const hasSeenSplash = sessionStorage.getItem('hasSeenSplash');
+    // 每次刷新都显示开屏
+    setShowSplash(true);
     
-    if (!hasSeenSplash) {
-      setShowSplash(true);
-      // 标记已经看过开屏
-      sessionStorage.setItem('hasSeenSplash', 'true');
-    }
+    // 2秒后自动关闭开屏
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+    
+    // 清理定时器
+    return () => clearTimeout(timer);
   }, []);
 
   // 处理点击外部关闭搜索结果
@@ -103,60 +108,48 @@ export default function CryptoTracker() {
       handleSearch();
     }
   }
+  
+  // 切换主题
+  const toggleTheme = () => {
+    setTheme(isDark ? "light" : "dark");
+  };
 
   return (
-    <div className={`${darkMode ? "bg-[#0b101a] text-white" : "bg-gray-50 text-gray-900"}`}>
+    <div className={cn(
+      "min-h-screen pb-16",
+      isDark ? "bg-[#0b101a] text-white" : "bg-white text-foreground"
+    )}>
       <EthereumProtection />
       
       <div className="max-w-md mx-auto pb-16">
-        {/* 头部 */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <div className="flex items-center gap-2">
-            <div className="relative w-8 h-8 rounded-full overflow-hidden">
-              <Image 
-                src="/LOGO.JPG" 
-                alt="XAI FINANCE" 
-                fill 
-                className="object-cover" 
-                priority
-              />
-            </div>
-            <h1 className="text-xl font-bold">XAI FINANCE</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setDarkMode(!darkMode)} className="rounded-full">
-              <Moon className="w-5 h-5" />
-            </Button>
-            <div className="relative w-8 h-8 rounded-full overflow-hidden">
-              <Image 
-                src="/LOGO.JPG" 
-                alt="Logo" 
-                fill 
-                className="object-cover"
-                priority
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 搜索部分 - 替换为与Kline页面一致的搜索框 */}
-        <div className="p-4 pb-2">
+        {/* 搜索部分 - 使用与市场页面一致的样式 */}
+        <div className="p-4 pt-6 pb-2">
           <div className="relative">
             <div className="flex items-center">
               <Input
                 type="text"
                 placeholder="搜索代币地址或符号..."
-                className={`w-full h-10 pl-10 ${darkMode ? "bg-gray-900 border-gray-800" : "bg-gray-100 border-gray-200"}`}
+                className={cn(
+                  "w-full h-10 pl-10 rounded-full shadow-sm",
+                  "transition-all duration-200 border-opacity-60",
+                  "focus:ring-2 focus:ring-primary/30 focus:border-primary/60",
+                  isDark 
+                    ? "bg-muted/40 border-muted/60 text-foreground" 
+                    : "bg-secondary/80 border-border/50 text-foreground"
+                )}
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onFocus={() => setShowResults(true)}
               />
-              <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <Button 
                 variant="default" 
                 size="sm" 
-                className="ml-2 bg-blue-600 hover:bg-blue-700"
+                className={cn(
+                  "ml-2 rounded-full bg-primary hover:bg-primary/90 px-4",
+                  "shadow-sm hover-scale"
+                )}
                 onClick={handleSearch}
               >
                 查询
@@ -166,50 +159,74 @@ export default function CryptoTracker() {
             {showResults && (
               <div 
                 ref={searchResultsRef} 
-                className={`absolute left-0 right-0 mt-1 max-h-96 overflow-y-auto rounded-md shadow-lg z-50 ${
-                  darkMode ? "bg-gray-900 border border-gray-800" : "bg-white border border-gray-200"
-                }`}
+                className={cn(
+                  "absolute left-0 right-0 mt-1 max-h-96 overflow-y-auto rounded-md shadow-lg z-50 animate-fade-in",
+                  isDark 
+                    ? "bg-card border border-border/70" 
+                    : "bg-card border border-border/40"
+                )}
               >
                 {isSearching ? (
-                  <div className="p-3 text-center text-sm">
-                    <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full inline-block mr-2"></div>
+                  <div className="p-4 text-center text-sm">
+                    <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full inline-block mr-2"></div>
                     搜索中...
                   </div>
                 ) : searchResults.length > 0 ? (
                   searchResults.map((token, index) => (
                     <div
                       key={index}
-                      className={`p-3 flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-800 border-b ${
-                        darkMode ? "border-gray-800" : "border-gray-200"
-                      }`}
+                      className={cn(
+                        "p-3 flex items-center gap-3 text-sm cursor-pointer transition-colors",
+                        "border-b last:border-0",
+                        isDark 
+                          ? "border-border/30 hover:bg-muted/50" 
+                          : "border-border/20 hover:bg-secondary/70",
+                      )}
                       onClick={() => handleTokenSelect(token)}
                     >
-                      <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-800 flex-shrink-0">
-                        {token.logo_url ? (
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden bg-muted flex-shrink-0 shadow-sm">
+                        {token.logo_url && token.logo_url.trim() !== '' ? (
                           <Image
                             src={token.logo_url}
-                            alt={token.symbol}
+                            alt={token.symbol || 'Token'}
                             fill
-                            className="object-cover"
+                            className="object-cover transition-transform hover:scale-110"
+                            style={{ transition: "transform 0.2s ease" }}
                           />
                         ) : (
-                          <div className="w-full h-full bg-blue-900 flex items-center justify-center text-xs">
+                          <div className={cn(
+                            "w-full h-full flex items-center justify-center text-xs font-medium text-white",
+                            `bg-gradient-to-br ${
+                              index % 5 === 0 ? "from-pink-500 to-rose-500" :
+                              index % 5 === 1 ? "from-blue-500 to-indigo-500" :
+                              index % 5 === 2 ? "from-green-500 to-emerald-500" :
+                              index % 5 === 3 ? "from-amber-500 to-orange-500" :
+                              "from-purple-500 to-fuchsia-500"
+                            }`
+                          )}>
                             {token.symbol?.charAt(0) || '?'}
                           </div>
                         )}
                       </div>
                       <div className="flex-grow">
                         <div className="font-medium">{token.symbol}</div>
-                        <div className="text-xs text-gray-400">{token.name} • {token.chain.toUpperCase()}</div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[120px]">
+                          {token.name} • {token.chain.toUpperCase()}
+                        </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs">
+                        <div className="text-xs font-medium">
                           ${typeof token.current_price_usd === 'string' 
                             ? parseFloat(token.current_price_usd).toFixed(6) 
                             : (token.current_price_usd || 0).toFixed(6)}
                         </div>
                         {token.price_change_24h && (
-                          <div className={`text-xs ${parseFloat(String(token.price_change_24h)) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          <div className={cn(
+                            "text-xs px-2 py-0.5 rounded-full mt-1 inline-block",
+                            parseFloat(String(token.price_change_24h)) >= 0 
+                              ? 'text-emerald-500 bg-emerald-500/10' 
+                              : 'text-rose-500 bg-rose-500/10'
+                          )}>
                             {parseFloat(String(token.price_change_24h)) >= 0 ? '+' : ''}
                             {parseFloat(String(token.price_change_24h)).toFixed(2)}%
                           </div>
@@ -218,18 +235,24 @@ export default function CryptoTracker() {
                     </div>
                   ))
                 ) : searchValue.trim() ? (
-                  <div className="p-3 text-center text-sm text-gray-500">
-                    未找到相关代币
+                  <div className="p-6 text-center">
+                    <div className="text-muted-foreground mb-1">未找到相关代币</div>
+                    <div className="text-xs text-muted-foreground/70">
+                      请尝试其他关键词或代币地址
+                    </div>
                   </div>
                 ) : null}
               </div>
             )}
           </div>
         </div>
-
-        {/* 探索部分 */}
+        
+        {/* 添加横幅部分 */}
         <div className="p-4 pt-0">
-          <Card className={`overflow-hidden rounded-xl ${darkMode ? "bg-transparent border-none" : "bg-transparent border-none"}`}>
+          <Card className={cn(
+            "overflow-hidden rounded-xl", 
+            isDark ? "bg-transparent border-none" : "bg-transparent border-none"
+          )}>
             <div className="relative w-full h-[120px]">
               <Image
                 src="/hf.png"
@@ -240,16 +263,21 @@ export default function CryptoTracker() {
               />
             </div>
           </Card>
-
-          {/* Token Rankings - Ave.ai API integration */}
-          <TokenRankings darkMode={darkMode} />
         </div>
 
-        {/* 底部导航 - 使用通用组件 */}
-        <BottomNav darkMode={darkMode} />
+        {/* 代币排行组件 */}
+        <div className="p-4 pt-0">
+          <TokenRankings darkMode={isDark} mode="homepage" />
+        </div>
       </div>
-      <Toaster />
+      
+      {/* 底部导航 */}
+      <BottomNav darkMode={isDark} />
+      
+      {/* 开屏 */}
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      
+      <Toaster />
     </div>
-  )
+  );
 }

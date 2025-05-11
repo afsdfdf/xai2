@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-
-// API key for Ave.ai
-const AVE_API_KEY = "NMUuJmYHJB6d91bIpgLqpuLLKYVws82lj0PeDP3UEb19FoyWFJUVGLsgE95XTEmA";
+import { AVE_API_KEY } from '../lib/constants';
 
 // 缓存数据结构
 interface CacheItem {
